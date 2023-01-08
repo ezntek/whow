@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "whow"
+version = "0.1.0"
+description = "A simple CLI To-do program."
+authors = ["Your Name <you@example.com>"]
+license = "GPLv3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+colorama = "^0.4.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,21 @@
+Usage: whow [option] [command] <args>
+
+`whow show` will be the default command, if no arguments were given.args
+
+Options:
+    -h    --help          Show this help screen
+    -V    --version       Print version
+    -c    --conf <file>   Specify a config file instead of one at the default path
+
+    Commands:
+        edit <rc|todos|events|schedule>            Edit file with editor
+        show [todos|events|important|schedule]     Show to-do's/events/schedule
+        
+        todo <subcommand>
+            add <name> [due|@category]       Add a todo
+            del <index|all>                  Delete a todo by index
+            mark <index>                     Mark done/undone by index
+
+        event <subcommand>
+            add <date> <name> [@caegory]     Add an event by index
+            del <index>                      Delete an event by index
