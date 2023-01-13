@@ -1,7 +1,7 @@
 #    Whow 
 #    A rewrite of DaringCuteSeal/whow in Python that aims to polish the overall UX.
 
-#    Copyright (C) 2023 ezntek (ezntek@xflymusic.com) and <placeholder>
+#    Copyright (C) 2023 ezntek (ezntek@xflymusic.com) and DaringCuteSeal (daringcuteseal@gmail.com)
 
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
