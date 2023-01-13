@@ -2,7 +2,7 @@
 name = "whow"
 version = "0.1.0"
 description = "A simple CLI To-do program."
-authors = ["Your Name <you@example.com>"]
+authors = [ "ezntek <ezntek@xflymusic.com>", "DaringCuteSeal <daringcuteseal@gmail.com>" ]
 license = "GPLv3"
 readme = "README.md"
 
