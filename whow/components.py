@@ -20,12 +20,24 @@ import datetime
 import calendar
 
 from dataclasses import dataclass
-from typing import Optional
 
-# Idea: Store the date and time in 2 variables and style in the repr
 BOLD = '\033[1m'
 END = '\033[0m'
 
+# Function Definitions
+def indexify_weekday(weekday: int) -> int:
+    """
+    Converts the 0==Monday, 6==Sunday dates
+    from *.weekday() to 0==Sunday, 6==Saturday dates
+    """
+
+    match weekday:
+        case 6:
+            return 0
+        case _:
+            return weekday+1
+
+# Class Definitions
 class DateDisplay():
     def __init__(self) -> None:
         # set up the base variable
@@ -41,39 +53,78 @@ class DateDisplay():
 @dataclass
 class Seperator():
     mode: str = "line" # line, equals or tilde
+    length: int = 27
 
     def __repr__(self) -> str:
         match self.mode:
             case "line":
-                return "-"*10
+                return "-"*self.length
             case "equals":
-                return "="*10
+                return "="*self.length
             case "tilde":
-                return "~"*10
+                return "~"*self.length
             case _:
                 return ""
 
 @dataclass
 class Tag:
-    name: Optional[str]
-    importance: Optional[str]
-    color: Optional[str] # colorama color
+    name: str | None
+    importance: str | None
+    color: str | None # colorama color
 
 @dataclass
 class CalDate:
     date: int
     tags: list[Tag]
-    bg: str # colorama bg
+    bg: str = colorama.Back.RESET # colorama bg
 
     def __repr__(self) -> str:
         return f"{self.bg}{self.date}{END}"
 
 class Calendar():
     def __init__(self) -> None:
-        self.days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
         datetime_now = datetime.datetime.now().date()
         monthrange = calendar.monthrange(int(datetime_now.strftime("%Y")), int(datetime_now.strftime("%m")))
-        # monthrange returns a tuple, given 2023, 1 as the input (Jan 2023), we get (day of the week of the 1st of month, number of days in month)
-        self.cal = []
-        for day in range(monthrange[1]): # loop over the no. of days in the month:
-            pass
+        
+        self.cal = [[CalDate(0, []) for _ in range(7)] for _ in range(5)]
+        
+        row_counter = 0
+        for day in range(monthrange[1]): # loop over the no. of days in the month
+            # increment row counter if last index is filled
+            if self.cal[row_counter][6].date != 0:
+                row_counter += 1
+
+            # get weekday
+            wd = datetime.datetime.strptime(f"{str(day+1)} {datetime_now.month} {datetime_now.year}", "%d %m %Y").weekday()
+            
+            # set the day
+            self.cal[row_counter][indexify_weekday(wd)] = CalDate(day+1, [])
+    
+    def __repr__(self) -> str:
+        """
+        Some pretty-printing for self.cal.
+        """
+
+        # print the dates
+        for count, day in enumerate(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]):
+            if count == 6:
+                print(f"{BOLD}{day}{END}") # print the \n on the last line
+            else:
+                print(f"{BOLD}{day}{END} ", end="") # dont print the \n
+
+        # add a seperator
+        #print(Seperator(mode="line"))
+
+        # print the dates
+        retval = ""
+        for y in self.cal:
+            for x in y:
+                if len(str(x.date)) == 1:
+                    if x.date == 0:
+                        retval += f"    " # Four Spaces
+                    else:
+                        retval += f"  {x.__repr__()} " # 2 then 1 space
+                else:
+                    retval += f" {x.__repr__()} "# 1 on either side
+            retval += "\n"
+        return retval

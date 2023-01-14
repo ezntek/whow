@@ -1,6 +1,6 @@
 Usage: whow [option] [command] <args>
 
-`whow show` will be the default command, if no arguments were given.args
+`whow show` will be the default command, if no arguments were given.
 
 Options:
     -h    --help          Show this help screen
