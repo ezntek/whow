@@ -63,7 +63,7 @@ class DateDisplay():
         return f"{BOLD}Today is{END} {BOLD}{colorama.Back.BLUE}📅 {self.date}{END} {BOLD}{colorama.Back.LIGHTMAGENTA_EX}🕓 {self.time}{END}"
 
 @dataclass
-class Seperator():
+class Separator():
     mode: str = "line" # line, equals or tilde
     length: int = 27
 
