@@ -38,14 +38,14 @@ def indexify_weekday(weekday: int) -> int:
         case _:
             return weekday+1
 
-def fprint(string: str, padding = 1) -> None:
+def fprint(string: str, padding = 1, flowtext = True) -> None:
     """
     Print out a string, omitting overflowed text based
     on the terminal width.
     """
 
     term_width = shutil.get_terminal_size().columns - 2 - padding
-    overflow = '…' if (len(string) + padding) > term_width else ''
+    overflow = '…' if flowtext and (len(string) + padding) > term_width else ''
     padding = " " * padding
     print(f"{padding} {string[0:term_width]}{overflow}")
 
