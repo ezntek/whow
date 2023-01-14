@@ -18,6 +18,7 @@
 import colorama
 import datetime
 import calendar
+import shutil
 
 from dataclasses import dataclass
 
@@ -36,6 +37,17 @@ def indexify_weekday(weekday: int) -> int:
             return 0
         case _:
             return weekday+1
+
+def fprint(string: str, padding = 1) -> None:
+    """
+    Print out a string, omitting overflowed text based
+    on the terminal width.
+    """
+
+    term_width = shutil.get_terminal_size().columns - 2 - padding
+    overflow = '…' if (len(string) + padding) > term_width else ''
+    padding = " " * padding
+    print(f"{padding} {string[0:term_width]}{overflow}")
 
 # Class Definitions
 class DateDisplay():
