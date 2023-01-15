@@ -15,9 +15,14 @@
 
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
+
+# Core Imports
 import colorama
 import os
 import sys
+
+# Other imports
+import components as cmp
 
 # Constant Definitions
 __version__ = "0.1.0"
@@ -42,8 +47,11 @@ def print_help() -> None:
         print(helptxt.read())
 
 def show() -> None:
-    pass
-
+    print(cmp.Separator(length=55))
+    print(cmp.DateDisplay())
+    print(cmp.Separator(length=55))
+    print(cmp.Calendar())
+    print(cmp.Separator(mode="equals", length=55))
 # Main Function
 def main() -> None:
     try:

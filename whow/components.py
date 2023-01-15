@@ -15,41 +15,19 @@
 
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
+
+# core imports
 import colorama
 import datetime
 import calendar
-import shutil
 
+# other imports
+import util
 from dataclasses import dataclass
 
 BOLD = '\033[1m'
 END = '\033[0m'
 
-# Function Definitions
-def indexify_weekday(weekday: int) -> int:
-    """
-    Converts the 0==Monday, 6==Sunday dates
-    from *.weekday() to 0==Sunday, 6==Saturday dates
-    """
-
-    match weekday:
-        case 6:
-            return 0
-        case _:
-            return weekday+1
-
-def fprint(string: str, padding = 1, flowtext = True) -> None:
-    """
-    Print out a string, omitting overflowed text based
-    on the terminal width.
-    """
-
-    term_width = shutil.get_terminal_size().columns - 2 - padding
-    overflow = '…' if flowtext and (len(string) + padding) > term_width else ''
-    padding = " " * padding
-    print(f"{padding} {string[0:term_width]}{overflow}")
-
-# Class Definitions
 class DateDisplay():
     def __init__(self) -> None:
         # set up the base variable
@@ -64,6 +42,11 @@ class DateDisplay():
 
 @dataclass
 class Separator():
+    """
+    Neat little seperator widget.
+    Avaiable Modes: line, equals or tilde
+    """
+
     mode: str = "line" # line, equals or tilde
     length: int = 27
 
@@ -110,12 +93,17 @@ class Calendar():
             wd = datetime.datetime.strptime(f"{str(day+1)} {datetime_now.month} {datetime_now.year}", "%d %m %Y").weekday()
             
             # set the day
-            self.cal[row_counter][indexify_weekday(wd)] = CalDate(day+1, [])
+            self.cal[row_counter][util.indexify_weekday(wd)] = CalDate(day+1, [])
     
     def __repr__(self) -> str:
         """
         Some pretty-printing for self.cal.
         """
+
+        # print the month name
+        now = datetime.datetime.now().date()
+        month_year = now.strftime("%B %Y")
+        util.print_center(month_year, 27, bias_left = True)
 
         # print the dates
         for count, day in enumerate(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]):
@@ -124,8 +112,6 @@ class Calendar():
             else:
                 print(f"{BOLD}{day}{END} ", end="") # dont print the \n
 
-        # add a seperator
-        #print(Seperator(mode="line"))
 
         # print the dates
         retval = ""

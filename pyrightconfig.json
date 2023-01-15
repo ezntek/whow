@@ -1,0 +1,9 @@
+{
+    "extraPaths": ["whow"],
+    "executionEnvironments": [
+        {
+            "root": "./",
+            "extraPaths": ["whow/"]
+        }
+    ]
+}
