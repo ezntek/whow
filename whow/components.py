@@ -24,6 +24,7 @@ import calendar
 # other imports
 import util
 from dataclasses import dataclass
+from util import Category
 
 BOLD = '\033[1m'
 END = '\033[0m'
@@ -62,15 +63,9 @@ class Separator():
                 return ""
 
 @dataclass
-class Tag:
-    name: str | None
-    importance: str | None
-    color: str | None # colorama color
-
-@dataclass
 class CalDate:
     date: int
-    tags: list[Tag]
+    tags: list[Category]
     bg: str = colorama.Back.RESET # colorama bg
 
     def __repr__(self) -> str:

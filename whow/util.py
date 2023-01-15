@@ -19,6 +19,15 @@
 import shutil
 import math
 
+from dataclasses import dataclass
+
+# class definitions
+@dataclass
+class Category:
+    name: str | None
+    importance: str | None
+    color: str | None # colorama color
+
 # Function Definitions for components
 def indexify_weekday(weekday: int) -> int:
     """
