@@ -17,6 +17,7 @@
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
 
 import shutil
+import colorama
 import math
 
 from dataclasses import dataclass
@@ -24,9 +25,19 @@ from dataclasses import dataclass
 # class definitions
 @dataclass
 class Category:
-    name: str | None
-    importance: str | None
-    color: str | None # colorama color
+    name: str
+    important: str
+    color: str = colorama.Back.RESET # colorama color
+
+    def get_dictionary(self) -> dict:
+        return {
+            "name": self.name,
+            "important": self.important,
+            "color": self.color,
+        }
+    
+    def __repr__(self) -> str:
+        return f"{colorama.Fore.RED}🞀{colorama.Fore.RESET}{colorama.Back.RED}       {colorama.Back.RESET}"
 
 # Function Definitions for components
 def indexify_weekday(weekday: int) -> int:
