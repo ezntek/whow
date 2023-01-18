@@ -26,8 +26,15 @@ import util
 from dataclasses import dataclass
 from util import Category
 
-BOLD = '\033[1m'
-END = '\033[0m'
+class ScheduleComponent():
+    pass
+class EventsComponent():
+    pass
+
+class ImportantToDosComponent():
+    pass
+class ToDoComponent():
+    pass
 
 class DateDisplay():
     def __init__(self) -> None:
@@ -39,7 +46,7 @@ class DateDisplay():
         self.time = self.date_time_now.strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"{BOLD}Today is{END} {BOLD}{colorama.Back.BLUE}📅 {self.date}{END} {BOLD}{colorama.Back.LIGHTMAGENTA_EX}🕓 {self.time}{END}"
+        return f"{colorama.Style.BRIGHT}Today is{colorama.Style.RESET_ALL} {colorama.Style.BRIGHT}{colorama.Back.BLUE}📅 {self.date}{colorama.Style.RESET_ALL} {colorama.Style.BRIGHT}{colorama.Back.LIGHTMAGENTA_EX}🕓 {self.time}{colorama.Style.RESET_ALL}"
 
 @dataclass
 class Separator():
@@ -69,7 +76,7 @@ class CalDate:
     bg: str = colorama.Back.RESET # colorama bg
 
     def __repr__(self) -> str:
-        return f"{self.bg}{self.date}{END}"
+        return f"{self.bg}{self.date}{colorama.Style.RESET_ALL}"
 
 class Calendar():
     def __init__(self) -> None:
@@ -100,12 +107,12 @@ class Calendar():
         month_year = now.strftime("%B %Y")
         util.print_center(month_year, 27, bias_left = True)
 
-        # print the dates
+        # print the days of the week
         for count, day in enumerate(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]):
             if count == 6:
-                print(f"{BOLD}{day}{END}") # print the \n on the last line
+                print(f"{colorama.Style.BRIGHT}{day}{colorama.Style.RESET_ALL}") # print the \n on the last line
             else:
-                print(f"{BOLD}{day}{END} ", end="") # dont print the \n
+                print(f"{colorama.Style.BRIGHT}{day}{colorama.Style.RESET_ALL} ", end="") # dont print the \n
 
 
         # print the dates

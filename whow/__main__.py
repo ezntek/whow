@@ -17,7 +17,7 @@
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
 
 # Core Imports
-import colorama
+import util
 import os
 import sys
 
@@ -31,15 +31,6 @@ END = '\033[0m'
 CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
 
 # Function Definitions
-def log(text: str) -> None:
-    print(f"{colorama.Fore.YELLOW}{BOLD}LOG: {END}{text}")
-
-def error(text: str) -> None:
-    print(f"{colorama.Back.RED}{BOLD}{colorama.Fore.WHITE}ERROR:{END} {text}")
-
-def warn(text: str) -> None:
-    print(f"{colorama.Fore.RED}{BOLD}WARNING:{END} {text}")
-
 def print_help() -> None:
     # open the help file in the resources folder
     
@@ -66,7 +57,7 @@ def main() -> None:
                 show()
 
     except KeyboardInterrupt:
-        log("Interrupt signal received, quitting..")
+        util.log("Interrupt signal received, quitting..")
         sys.exit()
     
 # Driver Code

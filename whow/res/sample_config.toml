@@ -1,0 +1,3 @@
+[config]
+default_seperator = "line"
+enable_emojis = true

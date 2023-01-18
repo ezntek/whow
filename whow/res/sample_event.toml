@@ -1,0 +1,9 @@
+[name_of_event]
+name = "name_of_event"
+full_day = false
+from = "4/2/069 12:34:56" # Day/Month/Year hours:minutes:seconds
+to = "4/3/069 13:45:06"
+description = """
+TheDescription.
+Yadda-Yadda-Ya.
+"""
