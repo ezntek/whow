@@ -140,19 +140,72 @@ def print_center(string: str, width: int, bias_left: bool = True, return_string:
             return f"{' '*int(padding_width/2)}{string}{' '*int(padding_width/2)}"
         print(f"{' '*int(padding_width/2)}{string}{''*int(padding_width/2)}")
 
-def register_todo(todo_entry: ToDoEntry, force: bool = False):
+def register_todo(todo_entry: ToDoEntry, force: bool = False) -> str | None:
     """
     Register a new To-Do.
+    
+    `force` is set to False as default, as
+    ```py
+    force=True
+    ```
+    will overwrite any todos with the same name
+    as the current one!
     """
 
-    
+    if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/todo/{todo_entry.name}.toml")):
+        if not force:
+            warn("A to-do entry with the same name exists. Aborting.")
+            return
+        warn("A to-do entry with the sme name already exists. Overwriting.")
 
+    # load the used indexes
+    with open(os.path.join(os.environ['HOME'], "./.local/whow/todo/index.toml")) as indexes:
+        idx: list[int | str] = toml.loads(indexes.read())['indexes']
+    
+    for count, i in enumerate(idx):
+        if i == "None":
+            idx[count] = count
+            todo_idx = count
+            break
+        if count == len(idx) - 1:
+            idx.append(count)
+            todo_idx = len(idx)
+    else:
+        raise Exception
+
+    # write the todo toml file
+    with open(os.path.join(os.environ['HOME'], f'./.local/whow/todo/{todo_entry.name}.toml')) as tml:
+        # unwrap the optional
+        todo_entry_due = todo_entry.due if todo_entry.due is not None else datetime.datetime.now()
+        
+        t = toml.dumps(
+            {
+                todo_entry.name: {
+                    "index": todo_idx,
+                    "name": todo_entry.name,
+                    "due": f"{todo_entry.due.day}/{todo_entry.due.month}/{todo_entry.due.year}"
+                           if todo_entry.due is not None else
+                           f"{datetime.datetime.now().day}/{datetime.datetime.now().month}/{datetime.datetime.now().year}",
+                    "categories": [c.name for c in todo_entry.categories],
+                    "overdue": False if datetime.datetime.now() < todo_entry_due else True
+                }
+            }
+        )
+        tml.write(t)
+
+    # write new index.toml after writin the todo
+    with open(os.path.join(os.environ['HOME'], "./.local/whow/todo/index.toml")) as indextoml:
+        indextoml.write(toml.dumps({
+            "indexes": idx
+        }))
+
+    return f"Registered New To-Do: \n{t}"
 
 def init_todos(destroy: bool = False):
     """
     Create the necessary paths for the To-Dos and Events.
     """
-    
+
     if destroy:
         shutil.rmtree(os.path.join(os.environ['HOME'], './.local/whow'))
 
