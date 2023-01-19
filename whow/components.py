@@ -20,11 +20,12 @@
 import colorama
 import datetime
 import calendar
+import toml
+import os
 
 # other imports
-import util
+from . import util
 from dataclasses import dataclass
-from util import Category
 
 class ScheduleComponent():
     pass
@@ -33,8 +34,24 @@ class EventsComponent():
 
 class ImportantToDosComponent():
     pass
+
 class ToDoComponent():
-    pass
+    def __init__(self) -> None:
+        self.todos: list[util.ToDoEntry] = []
+        self.load_todos()
+
+    def load_todos(self) -> None:
+        for filename in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/todos/")):
+            if filename != "index.toml":
+                with open(os.path.join(os.environ['HOME'], "./.local/whow/todos", filename), "r") as t:
+                    self.todos.append(util.parse_todoentry_from_dict(toml.loads(t.read()), os.path.splitext(filename)[0]))
+
+    def __repr__(self) -> str:
+        retval: str = ""
+        retval += f"{colorama.Style.BRIGHT}To-Do's{colorama.Style.RESET_ALL} \n"
+        for todo in self.todos:
+            retval += f"{colorama.Style.BRIGHT}#{todo.index}{colorama.Style.RESET_ALL} {todo.name}\n"
+        return retval
 
 class DateDisplay():
     def __init__(self) -> None:
@@ -72,7 +89,7 @@ class Separator():
 @dataclass
 class CalDate:
     date: int
-    tags: list[Category]
+    tags: list[util.Category]
     bg: str = colorama.Back.RESET # colorama bg
 
     def __repr__(self) -> str:

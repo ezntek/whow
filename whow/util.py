@@ -47,21 +47,52 @@ class Category():
     def __repr__(self) -> str:
         return f"{colorama.Fore.RED}{colorama.Fore.RESET}{colorama.Back.RED} {colorama.Style.BRIGHT}{self.name} {colorama.Style.RESET_ALL} {colorama.Back.RESET}"
 
+def parse_category_from_dict(d: dict[str, str]) -> Category:
+    """
+    Parse a dictionary that was parsed from a `Category` back into a `Category`.
+    """
+
+    return Category(
+        d["name"],
+        d["color"]
+    )
 @dataclass
 class ToDoEntry():
     name: str
     due: datetime.date | None
     categories: list[Category]
     overdue: bool = False
+    index: int = 0
 
-    def get_dictionary(self) -> dict[str, str | list[str | None]]:
+    def get_dictionary(self) -> dict[str, str | bool | list[dict[str, str]]]:
+        """
+        Get a dictionary for writing TOMLs with.
+        """
+
         due = f"{self.due.day}/{self.due.month}/{self.due.year}" if self.due is not None else 'N.A.'
         return {
             "name": self.name,
             "due": due,
-            "categories": [c.name for c in self.categories],
+            "categories": [c.get_dictionary() for c in self.categories],
             "overdue": self.overdue.__repr__()
         }
+    
+def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str, str]]]], file_name: str):
+    """
+    Parse a dictionary that was parsed from a `ToDoEvent` into a `ToDoEvent`.
+    `file_name` should be the name of the file WITHOUT the extension.
+    """
+
+    unparsed_due = str(d[file_name]["due"]).split("/")
+    due = datetime.date(int(unparsed_due[2]), int(unparsed_due[1]), int(unparsed_due[0]))
+    return ToDoEntry(
+        str(d[file_name]["name"]),
+        due,
+        [parse_category_from_dict(c) for c in d[file_name]["categories"]], # type: ignore
+        overdue=True if type(d[file_name]["overdue"]) == True and d[file_name]["overdue"] else False,
+        index=d[file_name]["index"] # type: ignore
+    )
+    
     
 @dataclass
 class EventEntry():
@@ -140,6 +171,30 @@ def print_center(string: str, width: int, bias_left: bool = True, return_string:
             return f"{' '*int(padding_width/2)}{string}{' '*int(padding_width/2)}"
         print(f"{' '*int(padding_width/2)}{string}{''*int(padding_width/2)}")
 
+def _fill_idx(l: list[int | str]) -> tuple[list[int | str], int]:
+    """
+    fill an index.toml indexes list.
+    This function is to bypass the use
+    of a for-else clause, which is
+    deprecated.
+    """
+    retval = []
+    idx = 0
+    found_spot = False
+
+    for count, i in enumerate(l):
+        retval.append(count)
+        print(f"appended {count}, {i} at {count}")
+        if i == "None":
+            found_spot = True
+            idx = count
+    
+    if not found_spot:
+        retval.append(len(retval))
+        idx = len(retval) - 1
+    
+    return (retval, idx)
+
 def register_todo(todo_entry: ToDoEntry, force: bool = False) -> str | None:
     """
     Register a new To-Do.
@@ -152,36 +207,34 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False) -> str | None:
     as the current one!
     """
 
-    if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/todo/{todo_entry.name}.toml")):
+    if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/todos/{todo_entry.name}.toml")):
         if not force:
             warn("A to-do entry with the same name exists. Aborting.")
             return
-        warn("A to-do entry with the sme name already exists. Overwriting.")
+        warn("A to-do entry with the same name already exists. Overwriting.")
 
     # load the used indexes
-    with open(os.path.join(os.environ['HOME'], "./.local/whow/todo/index.toml")) as indexes:
+    with open(os.path.join(os.environ['HOME'], "./.local/whow/todos/index.toml")) as indexes:
         idx: list[int | str] = toml.loads(indexes.read())['indexes']
     
-    for count, i in enumerate(idx):
-        if i == "None":
-            idx[count] = count
-            todo_idx = count
-            break
-        if count == len(idx) - 1:
-            idx.append(count)
-            todo_idx = len(idx)
-    else:
-        raise Exception
+    todo_idx = _fill_idx(idx)
+    print(todo_idx)
+
+    # write new index.toml
+    with open(os.path.join(os.environ['HOME'], "./.local/whow/todos/index.toml"), "w") as indextoml:
+        indextoml.write(toml.dumps({
+            "indexes": todo_idx[0]
+        }))
 
     # write the todo toml file
-    with open(os.path.join(os.environ['HOME'], f'./.local/whow/todo/{todo_entry.name}.toml')) as tml:
+    with open(os.path.join(os.environ['HOME'], f'./.local/whow/todos/{todo_entry.name}.toml'), "w+") as tml:
         # unwrap the optional
         todo_entry_due = todo_entry.due if todo_entry.due is not None else datetime.datetime.now()
         
         t = toml.dumps(
             {
                 todo_entry.name: {
-                    "index": todo_idx,
+                    "index": todo_idx[1],
                     "name": todo_entry.name,
                     "due": f"{todo_entry.due.day}/{todo_entry.due.month}/{todo_entry.due.year}"
                            if todo_entry.due is not None else
@@ -193,12 +246,6 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False) -> str | None:
         )
         tml.write(t)
 
-    # write new index.toml after writin the todo
-    with open(os.path.join(os.environ['HOME'], "./.local/whow/todo/index.toml")) as indextoml:
-        indextoml.write(toml.dumps({
-            "indexes": idx
-        }))
-
     return f"Registered New To-Do: \n{t}"
 
 def init_todos(destroy: bool = False):
@@ -207,11 +254,13 @@ def init_todos(destroy: bool = False):
     """
 
     if destroy:
+        warn("Overwriting ~/.local/whow...")
         shutil.rmtree(os.path.join(os.environ['HOME'], './.local/whow'))
 
     # create dirs
     dirs = ["./.local/whow",
             "./.local/whow/todos",
+            "./.local/whow/categories",
             "./.local/whow/events"]
 
     for dir in dirs:
@@ -225,14 +274,29 @@ def init_todos(destroy: bool = False):
     )
 
     # write the index.toml's
-    todos_indextoml = open(os.path.join(os.environ['HOME'], './.local/whow/todos/index.toml'))
-    events_indextoml = open(os.path.join(os.environ['HOME'], './.local/whow/events/index.toml')) 
+    todos_indextoml = open(os.path.join(os.environ['HOME'], './.local/whow/todos/index.toml'), "w+")
+    events_indextoml = open(os.path.join(os.environ['HOME'], './.local/whow/events/index.toml'), "w+") 
     todos_indextoml.write(indextoml_tmp)
-    events_indextoml.writable(indextoml_tmp)
+    events_indextoml.write(indextoml_tmp)
 
     todos_indextoml.close()
     events_indextoml.close()
+
+def register_category(category: Category, force: bool = False) -> str | None:
+    """
+    Register a new category
+    """
+    if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/categories/{category.name}")):
+        if not force:
+            warn("A category entry with the same name exists. Aborting")
+            return
+        warn("A category entry with the same name already exists. Overwriting")
     
+    with open(os.path.join(os.environ['HOME'], f'./.local/whow/categories/{category.name}.toml'), "w+") as categorytoml:
+        t = toml.dumps(category.get_dictionary())
+        categorytoml.write(t)
+
+    return f"Wrote a new category toml. \n{t}"
 
 def new_config(destroy: bool = False) -> str:
     """
