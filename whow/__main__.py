@@ -43,6 +43,7 @@ def show() -> None:
     print(cmp.Separator(length=55))
     print(cmp.Calendar())
     print(cmp.Separator(mode="equals", length=55))
+    
 # Main Function
 def main() -> None:
     try:

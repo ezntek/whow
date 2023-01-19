@@ -209,6 +209,7 @@ def init_todos(destroy: bool = False):
     if destroy:
         shutil.rmtree(os.path.join(os.environ['HOME'], './.local/whow'))
 
+    # create dirs
     dirs = ["./.local/whow",
             "./.local/whow/todos",
             "./.local/whow/events"]
@@ -216,6 +217,22 @@ def init_todos(destroy: bool = False):
     for dir in dirs:
         if not os.path.isdir(os.path.join(os.environ['HOME'], dir)):
             os.mkdir(os.path.join(os.environ['HOME'], dir))
+
+    indextoml_tmp = toml.dumps(
+        {
+            "indexes": []
+        }
+    )
+
+    # write the index.toml's
+    todos_indextoml = open(os.path.join(os.environ['HOME'], './.local/whow/todos/index.toml'))
+    events_indextoml = open(os.path.join(os.environ['HOME'], './.local/whow/events/index.toml')) 
+    todos_indextoml.write(indextoml_tmp)
+    events_indextoml.writable(indextoml_tmp)
+
+    todos_indextoml.close()
+    events_indextoml.close()
+    
 
 def new_config(destroy: bool = False) -> str:
     """
