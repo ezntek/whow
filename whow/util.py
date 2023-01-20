@@ -36,12 +36,12 @@ class EventDateTime():
 @dataclass
 class Category():
     name: str
-    color: str = colorama.Back.RESET # colorama color
+    color: str | None
 
     def get_dictionary(self) -> dict[str, str]:
         return {
             "name": self.name,
-            "color": self.color,
+            "color": self.color if self.color else colorama.Back.WHITE,
         }
     
     def __repr__(self) -> str:
