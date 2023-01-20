@@ -69,7 +69,7 @@ class DateDisplay():
 class Separator():
     """
     Neat little seperator widget.
-    Avaiable Modes: line, equals or tilde
+    Available Modes: line, equals or tilde
     """
 
     mode: str = "line" # line, equals or tilde
