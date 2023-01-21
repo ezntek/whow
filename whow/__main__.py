@@ -37,6 +37,19 @@ def print_help() -> None:
     with open(os.path.join(CURRENT_PATH, "./res/help.txt")) as helptxt:
         print(helptxt.read())
 
+def parse_args() -> None:
+    # do some sys.argv parsing here
+    
+    match sys.argv[1:]: # string slicing magic
+            case ["-h"]:
+                print_help()
+            case ["-V"]:
+                print(__version__)
+            case ["-c"]:
+                pass # placeholder
+            case _: # default option (no arguments)
+                show()
+
 def show() -> None:
     print(cmp.Separator(length=55))
     print(cmp.DateDisplay())
@@ -47,16 +60,7 @@ def show() -> None:
 # Main Function
 def main() -> None:
     try:
-        match sys.argv[1:]: # string slicing magic
-            case ["-h"]:
-                print_help()
-            case ["-V"]:
-                print(__version__)
-            case ["-c"]:
-                pass # placeholder
-            case _: # default option (no arguments)
-                show()
-
+        parse_args()        
     except KeyboardInterrupt:
         util.log("Interrupt signal received, quitting..")
         sys.exit()

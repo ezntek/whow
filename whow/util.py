@@ -20,10 +20,10 @@ import datetime
 import toml
 import os
 import shutil
-import colorama
 import math
 
 from dataclasses import dataclass
+from colors import Color, Colors, Styles, get_color_class_from_name
 
 # class definitions
 @dataclass
@@ -36,16 +36,16 @@ class EventDateTime():
 @dataclass
 class Category():
     name: str
-    color: str | None
+    color: Color = Colors.white()
 
     def get_dictionary(self) -> dict[str, str]:
         return {
             "name": self.name,
-            "color": self.color if self.color else colorama.Back.WHITE,
+            "color": self.color.name,
         }
     
     def __repr__(self) -> str:
-        return f"{colorama.Fore.RED}{colorama.Fore.RESET}{colorama.Back.RED} {colorama.Style.BRIGHT}{self.name} {colorama.Style.RESET_ALL} {colorama.Back.RESET}"
+        return f"{Colors.red.fg}{Colors.fg_end}{self.color} {Styles.bold}{self.name} {Styles.end} {Colors.bg_end}"
 
 def parse_category_from_dict(d: dict[str, str]) -> Category:
     """
@@ -54,7 +54,7 @@ def parse_category_from_dict(d: dict[str, str]) -> Category:
 
     return Category(
         d["name"],
-        d["color"]
+        get_color_class_from_name(d["color"])
     )
 @dataclass
 class ToDoEntry():
@@ -113,13 +113,13 @@ class EventEntry():
 
 # Function Definitions
 def log(text: str) -> None:
-    print(f"{colorama.Fore.YELLOW}{colorama.Style.BRIGHT}[>>]{colorama.Style.RESET_ALL} {text}")
+    print(f"{Styles.bold}{Colors.yellow().colorprint('[>>]', return_string=True)}{Styles.end} {text}")
 
 def error(text: str) -> None:
-    print(f"{colorama.Back.RED}{colorama.Style.BRIGHT}{colorama.Fore.WHITE}[!!]{colorama.Style.RESET_ALL} {text}")
+    print(f"{Styles.bold}{Colors.red().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
 
 def warn(text: str) -> None:
-    print(f"{colorama.Fore.MAGENTA}{colorama.Style.BRIGHT}[!!]{colorama.Style.RESET_ALL} {text}")
+    print(f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
 
 
 def indexify_weekday(weekday: int) -> int:

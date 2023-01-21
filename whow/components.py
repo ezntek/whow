@@ -24,7 +24,7 @@ import toml
 import os
 
 # other imports
-from . import util
+import util
 from dataclasses import dataclass
 
 class ScheduleComponent():
