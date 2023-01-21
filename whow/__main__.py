@@ -20,6 +20,7 @@
 import util
 import os
 import sys
+import datetime
 
 # Other imports
 import components as cmp
@@ -39,16 +40,63 @@ def print_help() -> None:
 
 def parse_args() -> None:
     # do some sys.argv parsing here
-    
-    match sys.argv[1:]: # string slicing magic
-            case ["-h"]:
-                print_help()
-            case ["-V"]:
-                print(__version__)
-            case ["-c"]:
-                pass # placeholder
-            case _: # default option (no arguments)
-                show()
+
+    match sys.argv[1:]: # slicing magic
+        case ["-h"]:
+            print_help()
+        case ["-V"]:
+            print(__version__)
+        case ["-c"]:
+            pass # placeholder
+        case ["todo"]:
+            match sys.argv[2:]:
+                case "add":
+                    # guard clauses
+                    if len(sys.argv) < 4:
+                        util.warn("You have to put a name for the new todo entry!")
+                    name = sys.argv[3] 
+                    
+                    # set some default values
+                    categories: list[str] = []
+                    category_classes: list[util.Category] = []
+                    due_date = ""
+
+                    if len(sys.argv) >= 5:
+                        due_date = sys.argv[4]
+                    
+                    if len(sys.argv) >= 6:
+                        categories = sys.argv[5:]
+                
+                    for category_name in categories:
+                        if not util.check_category_existence(category_name):
+                            util.warn(f"Category {category_name} does not exist!")
+                        
+                        category_classes.append(util.match_name_with_category(category_name))
+
+                    rv = util.register_todo(util.ToDoEntry(
+                        name,
+                        None if due_date is None else util.split_string_date(due_date),
+                        category_classes,
+                        overdue = True if util.split_string_date(due_date) < datetime.datetime.today().date() else False
+                    ))
+
+                    util.log(rv) if rv is not None else None
+                            
+                case "del":
+                    if len(sys.argv) >= 4:
+                        util.warn("Index of todo is required!")
+
+                    index = sys.argv[3]
+
+                case "mark":
+                    if len(sys.argv) >= 4:
+                        util.warn("Index of todo is required!")
+
+                case _:
+                    print_help()
+                
+        case _: # default option (no arguments)
+            show()
 
 def show() -> None:
     print(cmp.Separator(length=55))

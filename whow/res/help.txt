@@ -17,5 +17,5 @@ Options:
             mark <index>                     Mark done/undone by index
 
         event <subcommand>
-            add <date> <name> [@caegory]     Add an event by index
+            add <date> <name> [@category]     Add an event by index
             del <index>                      Delete an event by index

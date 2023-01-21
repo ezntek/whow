@@ -17,24 +17,20 @@
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
 
 # core imports
-import colorama
+from .colors import Colors, Styles
 import datetime
 import calendar
 import toml
 import os
 
 # other imports
-import util
+from . import util
 from dataclasses import dataclass
 
 class ScheduleComponent():
     pass
 class EventsComponent():
     pass
-
-class ImportantToDosComponent():
-    pass
-
 class ToDoComponent():
     def __init__(self) -> None:
         self.todos: list[util.ToDoEntry] = []
@@ -48,9 +44,14 @@ class ToDoComponent():
 
     def __repr__(self) -> str:
         retval: str = ""
-        retval += f"{colorama.Style.BRIGHT}To-Do's{colorama.Style.RESET_ALL} \n"
+        retval += f"{Styles.bold}To-Do's{Styles.end} \n"
+
+        categories_string: str = ""
+        
         for todo in self.todos:
-            retval += f"{colorama.Style.BRIGHT}#{todo.index}{colorama.Style.RESET_ALL} {todo.name}\n"
+            for category in todo.categories:
+                categories_string += f"{category.__repr__()} "
+            retval += f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n"
         return retval
 
 class DateDisplay():
@@ -63,7 +64,7 @@ class DateDisplay():
         self.time = self.date_time_now.strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"{colorama.Style.BRIGHT}Today is{colorama.Style.RESET_ALL} {colorama.Style.BRIGHT}{colorama.Back.BLUE}📅 {self.date}{colorama.Style.RESET_ALL} {colorama.Style.BRIGHT}{colorama.Back.LIGHTMAGENTA_EX}🕓 {self.time}{colorama.Style.RESET_ALL}"
+        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue}📅 {self.date}{Styles.end} {Styles.bold}{Colors.magenta}🕓 {self.time}{Styles.end}"
 
 @dataclass
 class Separator():
@@ -90,10 +91,10 @@ class Separator():
 class CalDate:
     date: int
     tags: list[util.Category]
-    bg: str = colorama.Back.RESET # colorama bg
+    bg: str = ""
 
     def __repr__(self) -> str:
-        return f"{self.bg}{self.date}{colorama.Style.RESET_ALL}"
+        return f"{self.bg}{self.date}{Styles.end}"
 
 class Calendar():
     def __init__(self) -> None:
@@ -127,9 +128,9 @@ class Calendar():
         # print the days of the week
         for count, day in enumerate(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]):
             if count == 6:
-                print(f"{colorama.Style.BRIGHT}{day}{colorama.Style.RESET_ALL}") # print the \n on the last line
+                print(f"{Styles.bold}{day}{Styles.end}") # print the \n on the last line
             else:
-                print(f"{colorama.Style.BRIGHT}{day}{colorama.Style.RESET_ALL} ", end="") # dont print the \n
+                print(f"{Styles.bold}{day}{Styles.end} ", end="") # dont print the \n
 
 
         # print the dates

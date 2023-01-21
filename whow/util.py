@@ -23,7 +23,7 @@ import shutil
 import math
 
 from dataclasses import dataclass
-from colors import Color, Colors, Styles, get_color_class_from_name
+from .colors import Color, Colors, Styles, get_color_class_from_name
 
 # class definitions
 @dataclass
@@ -33,6 +33,7 @@ class EventDateTime():
 
     def __repr__(self) -> str:
         return f"{self.date.day}/{self.date.month}/{self.date.year} {self.time.hour}:{self.time.minute}:{self.time.second}"
+
 @dataclass
 class Category():
     name: str
@@ -40,22 +41,13 @@ class Category():
 
     def get_dictionary(self) -> dict[str, str]:
         return {
-            "name": self.name,
+            "name": self.name.lower(),
             "color": self.color.name,
         }
     
     def __repr__(self) -> str:
-        return f"{Colors.red.fg}{Colors.fg_end}{self.color} {Styles.bold}{self.name} {Styles.end} {Colors.bg_end}"
+        return f"{self.color.fg}{Colors.fg_end}{self.color.bg}{Styles.bold}{self.name} {Styles.end} {Colors.bg_end}"
 
-def parse_category_from_dict(d: dict[str, str]) -> Category:
-    """
-    Parse a dictionary that was parsed from a `Category` back into a `Category`.
-    """
-
-    return Category(
-        d["name"],
-        get_color_class_from_name(d["color"])
-    )
 @dataclass
 class ToDoEntry():
     name: str
@@ -76,23 +68,6 @@ class ToDoEntry():
             "categories": [c.get_dictionary() for c in self.categories],
             "overdue": self.overdue.__repr__()
         }
-    
-def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str, str]]]], file_name: str):
-    """
-    Parse a dictionary that was parsed from a `ToDoEvent` into a `ToDoEvent`.
-    `file_name` should be the name of the file WITHOUT the extension.
-    """
-
-    unparsed_due = str(d[file_name]["due"]).split("/")
-    due = datetime.date(int(unparsed_due[2]), int(unparsed_due[1]), int(unparsed_due[0]))
-    return ToDoEntry(
-        str(d[file_name]["name"]),
-        due,
-        [parse_category_from_dict(c) for c in d[file_name]["categories"]], # type: ignore
-        overdue=True if type(d[file_name]["overdue"]) == True and d[file_name]["overdue"] else False,
-        index=d[file_name]["index"] # type: ignore
-    )
-    
     
 @dataclass
 class EventEntry():
@@ -171,6 +146,33 @@ def print_center(string: str, width: int, bias_left: bool = True, return_string:
             return f"{' '*int(padding_width/2)}{string}{' '*int(padding_width/2)}"
         print(f"{' '*int(padding_width/2)}{string}{''*int(padding_width/2)}")
 
+
+def parse_category_from_dict(d: dict[str, str]) -> Category:
+    """
+    Parse a dictionary that was parsed from a `Category` back into a `Category`.
+    """
+
+    return Category(
+        d["name"],
+        get_color_class_from_name(d["color"])
+    )
+    
+def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str, str]]]], file_name: str):
+    """
+    Parse a dictionary that was parsed from a `ToDoEvent` into a `ToDoEvent`.
+    `file_name` should be the name of the file WITHOUT the extension.
+    """
+
+    unparsed_due = str(d[file_name]["due"]).split("/")
+    due = datetime.date(int(unparsed_due[2]), int(unparsed_due[1]), int(unparsed_due[0]))
+    return ToDoEntry(
+        str(d[file_name]["name"]),
+        due,
+        [parse_category_from_dict(c) for c in d[file_name]["categories"]], # type: ignore
+        overdue=True if type(d[file_name]["overdue"]) == True and d[file_name]["overdue"] else False,
+        index=d[file_name]["index"] # type: ignore
+    )
+    
 def _fill_idx(l: list[int | str]) -> tuple[list[int | str], int]:
     """
     fill an index.toml indexes list.
@@ -281,6 +283,30 @@ def init_todos(destroy: bool = False):
 
     todos_indextoml.close()
     events_indextoml.close()
+
+def split_string_date(string_date: str) -> datetime.date:
+    """
+    Split a string date in the date/month/year format into a datetime.date object.
+    """
+    string_date_array = string_date.split("/")
+    if (int(string_date_array[0]) > 31) or (int(string_date_array[1]) > 12):
+        error("The date you supplied was invalid! It has to follow the date/month/year format.")
+        exit()
+    
+    return datetime.date(int(string_date_array[2]), int(string_date_array[1]), int(string_date_array[0]))
+
+def check_category_existence(name: str) -> bool:
+    for path in os.listdir(os.path.join(os.environ['HOME'], f"./.local/whow/categories")):
+        if (name == os.path.splitext(path)[0]) or (name.lower() == os.path.splitext(path)[0].lower()):
+            return True
+    return False
+
+def match_name_with_category(name: str) -> Category:
+    for path in os.listdir(os.path.join(os.environ['HOME'], f"./.local/whow/categories")):
+        with open(os.path.join(os.environ['HOME'], "./.local/whow/categories", path), "r") as category_from_path:
+            return parse_category_from_dict(toml.loads(category_from_path.read()))
+    return Category("zombie_category")
+
 
 def register_category(category: Category, force: bool = False) -> str | None:
     """
