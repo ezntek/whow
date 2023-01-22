@@ -41,7 +41,7 @@ class Category():
 
     def get_dictionary(self) -> dict[str, str]:
         return {
-            "name": self.name.lower(),
+            "name": self.name.lower(), # TODO: replace whitespaces with underscores
             "color": self.color.name,
         }
     
@@ -149,15 +149,21 @@ def print_center(string: str, width: int, bias_left: bool = True, return_string:
         print(f"{' '*int(padding_width/2)}{string}{''*int(padding_width/2)}")
 
 
-def parse_category_from_dict(d: dict[str, str]) -> Category:
+def parse_category_from_name(s: str) -> Category:
     """
     Parse a dictionary that was parsed from a `Category` back into a `Category`.
     """
 
-    return Category(
-        d["name"],
-        get_color_class_from_name(d["color"])
-    )
+    BASEDIR = os.path.join(os.environ['HOME'], "./.local/whow/categories")
+    for category_filename in os.listdir(BASEDIR):
+        c = toml.load(os.path.join(BASEDIR, category_filename))
+        if c["name"] == s:
+            return Category(
+                s,
+                get_color_class_from_name(c["color"])
+            )
+    raise NameError("The category name was not found! perhaps you did not add it yet?")
+
     
 def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str, str]]]], file_name: str) -> ToDoEntry:
     """
@@ -168,11 +174,11 @@ def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str,
     unparsed_due = str(d[file_name]["due"]).split("/")
     due = datetime.date(int(unparsed_due[2]), int(unparsed_due[1]), int(unparsed_due[0]))
     return ToDoEntry(
-        str(d[file_name]["name"]),
+        str(d[file_name]["name"]).replace("_", " "),
         due,
-        [parse_category_from_dict(c) for c in d[file_name]["categories"]], # type: ignore
+        [parse_category_from_name(c) for c in d[file_name]["categories"]], # type: ignore
         overdue=True if (type(d[file_name]["overdue"]) == True and d[file_name]["overdue"]) or (datetime.datetime.now().date() > due) else False,
-        ticked=d[file_name]["ticked"],
+        ticked=d[file_name]["ticked"], # type: ignore
         index=d[file_name]["index"] # type: ignore
     )
     
@@ -189,7 +195,7 @@ def _fill_idx(l: list[int | str]) -> tuple[list[int | str], int]:
 
     for count, i in enumerate(l):
         retval.append(count)
-        print(f"appended {count}, {i} at {count}")
+        #print(f"appended {count}, {i} at {count}")
         if i == "None":
             found_spot = True
             idx = count
@@ -200,60 +206,77 @@ def _fill_idx(l: list[int | str]) -> tuple[list[int | str], int]:
     
     return (retval, idx)
 
-def match_todo_index(index: int) -> str | int:
+def pop_indextoml_element(element: int) -> None:
+    """
+    Remove an entry from an index.toml.
+    """
+
+    with open(os.path.join(os.environ['HOME'], f"./.local/whow/todos"), "r") as index_toml:
+        indexes: list[int] = toml.loads(index_toml.read())['indexes']
+        for count, idx in enumerate(indexes):
+            indexes.pop(count) if idx == element else None
+        index_toml.write(toml.dumps({
+            "indexes": indexes
+        }))
+
+def match_todo_index(index: int) -> str:
     """
     Find a to-do filename based on its index.
     """
 
-    basedir = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
-    for filename in os.listdir(basedir):
-        data = toml.load(os.path.join(basedir, filename))
+    BASEDIR = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
+    for filename in os.listdir(BASEDIR):
+        if filename == "index.toml":
+            continue
+        data = toml.load(os.path.join(BASEDIR, filename))
         todo_name = os.path.splitext(filename.replace("_", " "))[0]
 
         if index == data[todo_name]["index"]:
             return filename
+    raise IndexError('No file with this to-do index exists! Perhaps the index.toml is corrupted?')
 
-    return False
-
-def del_todo(index: int) -> str | bool:
+def del_todo(index: int) -> str:
     """
     Delete a to-do by its index.
     """
-    # TODO: use match_todo_index function to get the index instead
+    
+    try:
+        filename = match_todo_index(index)
+    except IndexError:
+        error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
+        return ""
+        
+    BASEDIR = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
+    todo_name = os.path.splitext(filename.replace("_", " "))[0]
+    todo = parse_todoentry_from_dict(toml.loads(os.path.join(BASEDIR, filename)), filename)
+    
+    if index == todo.index:
+        os.remove(os.path.join(BASEDIR, filename))
+        pop_indextoml_element(index)
+        return f"Deleted to-do: {todo_name}\n"
+    return ""
 
-    basedir = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
-    for filename in os.listdir(basedir):
-        data = toml.load(os.path.join(basedir, filename))
-        todo_name = os.path.splitext(filename.replace("_", " "))[0]
-
-        if index == data[todo_name]["index"]:
-            os.remove(os.path.join(basedir, filename))
-
-        return f"Deleted to-do: {filename}\n"
-    return False
-
-def mark_todo(index: int) -> str | bool:
+def mark_todo(index: int) -> str:
     """
     Tick a to-do as done/undone.
     """
 
-    # TODO: this is incomplete
+    try:
+        filename = match_todo_index(index)
+    except IndexError:
+        error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
+        return ""
 
-    basedir = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
-    for filename in os.listdir(basedir):
-        data = toml.load(os.path.join(basedir, filename))
-        todo_name = os.path.splitext(filename.replace("_", " "))[0]
-        todo_dict = parse_todoentry_from_dict(data, todo_name)
-        
-        status = not todo_dict[todo_name]["ticked"]
-        todo_dict[todo_name]["ticked"] = status
-        todo = parse_todoentry_from_dict(todo_dict)
-        register_todo(todo)
+    data = toml.load(os.path.join((os.environ["HOME"]), f'./.local/whow/todos/', filename))
+    todo_name = os.path.splitext(filename.replace("_", " "))[0]
+    todo = parse_todoentry_from_dict(data, todo_name)
+    
+    todo.ticked = not todo.ticked
+    register_todo(todo, force=True, quiet=True, use_old_index=True)
+    
+    return f"Marked to-do: {filename} as {not todo.ticked}\n" 
 
-        return f"Marked to-do: {filename} as {status}\n"
-    return False 
-
-def register_todo(todo_entry: ToDoEntry, force: bool = False) -> str | None:
+def register_todo(todo_entry: ToDoEntry, force: bool = False, quiet: bool = False, use_old_index: bool = False) -> str | None:
     """
     Register a new To-Do.
     
@@ -263,42 +286,58 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False) -> str | None:
     ```
     will overwrite any todos with the same name
     as the current one!
-    """
 
+    ```py
+    quiet=True
+    ```
+    will make the function "shut up".
+
+    ```py
+    use_old_index=True
+    ```
+    will keep the same index as the index provided
+    by the `todo_entry.index` value, for use with
+    certain functions only.
+    """
+    # replace all whitespaces with underscores
+    todo_entry.name.replace(" ", "_")
+
+    # guard clause
     if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/todos/{todo_entry.name}.toml")):
         if not force:
-            warn("A to-do entry with the same name exists. Aborting.")
+            warn("A to-do entry with the same name exists. Aborting.") if not quiet else None
             return
-        warn("A to-do entry with the same name already exists. Overwriting.")
+        warn("A to-do entry with the same name already exists. Overwriting.") if not quiet else None
 
-    # load the used indexes
-    with open(os.path.join(os.environ['HOME'], "./.local/whow/todos/index.toml")) as indexes:
-        idx: list[int | str] = toml.loads(indexes.read())['indexes']
-    
-    todo_idx = _fill_idx(idx)
-    print(todo_idx)
+    todo_idx = (0, 0)
+    if not use_old_index:
+        # load the used indexes
+        with open(os.path.join(os.environ['HOME'], "./.local/whow/todos/index.toml")) as indexes:
+            idx: list[int | str] = toml.loads(indexes.read())['indexes']
+        
+        todo_idx = _fill_idx(idx)
 
-    # write new index.toml
-    with open(os.path.join(os.environ['HOME'], "./.local/whow/todos/index.toml"), "w") as indextoml:
-        indextoml.write(toml.dumps({
-            "indexes": todo_idx[0]
-        }))
+        # write new index.toml
+        with open(os.path.join(os.environ['HOME'], "./.local/whow/todos/index.toml"), "w") as indextoml:
+            indextoml.write(toml.dumps({
+                "indexes": todo_idx[0]
+            }))
 
     # write the todo toml file
     with open(os.path.join(os.environ['HOME'], f'./.local/whow/todos/{todo_entry.name.replace(" ", "_")}.toml'), "w+") as tml:
         # unwrap the optional
-        todo_entry_due = todo_entry.due if todo_entry.due is not None else datetime.datetime.now()
+        todo_entry_due = todo_entry.due if todo_entry.due is not None else datetime.datetime.now().date()
         
         t = toml.dumps(
             {
                 todo_entry.name: {
-                    "index": todo_idx[1],
+                    "index": todo_idx[1] if not use_old_index else todo_entry.index,
                     "name": todo_entry.name,
                     "due": f"{todo_entry.due.day}/{todo_entry.due.month}/{todo_entry.due.year}"
                            if todo_entry.due is not None else
                            f"{datetime.datetime.now().day}/{datetime.datetime.now().month}/{datetime.datetime.now().year}",
                     "categories": [c.name for c in todo_entry.categories],
-                    "overdue": False if datetime.datetime.now() < todo_entry_due else True,
+                    "overdue": False if datetime.datetime.now().date() < todo_entry_due else True,
                     "ticked": todo_entry.ticked
                 }
             }
@@ -360,10 +399,9 @@ def check_category_existence(name: str) -> bool:
 
 def match_name_with_category(name: str) -> Category:
     for path in os.listdir(os.path.join(os.environ['HOME'], f"./.local/whow/categories")):
-        with open(os.path.join(os.environ['HOME'], "./.local/whow/categories", path), "r") as category_from_path:
-            return parse_category_from_dict(toml.loads(category_from_path.read()))
+        if os.path.splitext(path)[0] == name:
+                return parse_category_from_name(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))['name'])
     return Category("zombie_category")
-
 
 def register_category(category: Category, force: bool = False) -> str | None:
     """
@@ -414,8 +452,8 @@ def new_config(destroy: bool = False) -> str:
     
     return f"Dumped toml successfully. \n{c}"
 
-# Development codes; delete later.
-def _debug_create_todo(name: str, index: int):
+# Development code
+def debug_create_todo(name: str) -> ToDoEntry:
     category1 = Category("category1")
     category2 = Category("category2")
-    return ToDoEntry(name, None, [category1, category2], False, False, index)
+    return ToDoEntry(name, None, [category1, category2])
