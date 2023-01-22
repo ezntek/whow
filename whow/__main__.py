@@ -17,12 +17,12 @@
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
 
 # Core Imports
-import util
 import os
 import sys
 import datetime
 
 # Other imports
+import util
 import components as cmp
 
 # Constant Definitions
@@ -87,10 +87,15 @@ def parse_args() -> None:
                         util.warn("Index of todo is required!")
 
                     index = sys.argv[3]
+                    if not util.del_todo(index):
+                        util.error(f"Failed to delete to-do by index {index}!")
 
                 case "mark":
                     if len(sys.argv) >= 4:
                         util.warn("Index of todo is required!")
+                    
+                    index = sys.argv[3]
+                    util.mark_todo(index)
 
                 case _:
                     print_help()
