@@ -54,6 +54,7 @@ class ToDoEntry():
     due: datetime.date | None
     categories: list[Category]
     overdue: bool = False
+    ticked: bool = False
     index: int = 0
 
     def get_dictionary(self) -> dict[str, str | bool | list[dict[str, str]]]:
@@ -66,7 +67,8 @@ class ToDoEntry():
             "name": self.name,
             "due": due,
             "categories": [c.get_dictionary() for c in self.categories],
-            "overdue": self.overdue.__repr__()
+            "overdue": self.overdue.__repr__(),
+            "ticked": self.ticked,
         }
     
 @dataclass
@@ -157,7 +159,7 @@ def parse_category_from_dict(d: dict[str, str]) -> Category:
         get_color_class_from_name(d["color"])
     )
     
-def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str, str]]]], file_name: str):
+def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str, str]]]], file_name: str) -> ToDoEntry:
     """
     Parse a dictionary that was parsed from a `ToDoEvent` into a `ToDoEvent`.
     `file_name` should be the name of the file WITHOUT the extension.
@@ -169,7 +171,8 @@ def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str,
         str(d[file_name]["name"]),
         due,
         [parse_category_from_dict(c) for c in d[file_name]["categories"]], # type: ignore
-        overdue=True if type(d[file_name]["overdue"]) == True and d[file_name]["overdue"] else False,
+        overdue=True if (type(d[file_name]["overdue"]) == True and d[file_name]["overdue"]) or (datetime.datetime.now().date() > due) else False,
+        ticked=d[file_name]["ticked"],
         index=d[file_name]["index"] # type: ignore
     )
     
@@ -196,6 +199,59 @@ def _fill_idx(l: list[int | str]) -> tuple[list[int | str], int]:
         idx = len(retval) - 1
     
     return (retval, idx)
+
+def match_todo_index(index: int) -> str | int:
+    """
+    Find a to-do filename based on its index.
+    """
+
+    basedir = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
+    for filename in os.listdir(basedir):
+        data = toml.load(os.path.join(basedir, filename))
+        todo_name = os.path.splitext(filename.replace("_", " "))[0]
+
+        if index == data[todo_name]["index"]:
+            return filename
+
+    return False
+
+def del_todo(index: int) -> str | bool:
+    """
+    Delete a to-do by its index.
+    """
+    # TODO: use match_todo_index function to get the index instead
+
+    basedir = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
+    for filename in os.listdir(basedir):
+        data = toml.load(os.path.join(basedir, filename))
+        todo_name = os.path.splitext(filename.replace("_", " "))[0]
+
+        if index == data[todo_name]["index"]:
+            os.remove(os.path.join(basedir, filename))
+
+        return f"Deleted to-do: {filename}\n"
+    return False
+
+def mark_todo(index: int) -> str | bool:
+    """
+    Tick a to-do as done/undone.
+    """
+
+    # TODO: this is incomplete
+
+    basedir = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
+    for filename in os.listdir(basedir):
+        data = toml.load(os.path.join(basedir, filename))
+        todo_name = os.path.splitext(filename.replace("_", " "))[0]
+        todo_dict = parse_todoentry_from_dict(data, todo_name)
+        
+        status = not todo_dict[todo_name]["ticked"]
+        todo_dict[todo_name]["ticked"] = status
+        todo = parse_todoentry_from_dict(todo_dict)
+        register_todo(todo)
+
+        return f"Marked to-do: {filename} as {status}\n"
+    return False 
 
 def register_todo(todo_entry: ToDoEntry, force: bool = False) -> str | None:
     """
@@ -229,7 +285,7 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False) -> str | None:
         }))
 
     # write the todo toml file
-    with open(os.path.join(os.environ['HOME'], f'./.local/whow/todos/{todo_entry.name}.toml'), "w+") as tml:
+    with open(os.path.join(os.environ['HOME'], f'./.local/whow/todos/{todo_entry.name.replace(" ", "_")}.toml'), "w+") as tml:
         # unwrap the optional
         todo_entry_due = todo_entry.due if todo_entry.due is not None else datetime.datetime.now()
         
@@ -242,7 +298,8 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False) -> str | None:
                            if todo_entry.due is not None else
                            f"{datetime.datetime.now().day}/{datetime.datetime.now().month}/{datetime.datetime.now().year}",
                     "categories": [c.name for c in todo_entry.categories],
-                    "overdue": False if datetime.datetime.now() < todo_entry_due else True
+                    "overdue": False if datetime.datetime.now() < todo_entry_due else True,
+                    "ticked": todo_entry.ticked
                 }
             }
         )
@@ -356,3 +413,9 @@ def new_config(destroy: bool = False) -> str:
         cfg.write(c)
     
     return f"Dumped toml successfully. \n{c}"
+
+# Development codes; delete later.
+def _debug_create_todo(name: str, index: int):
+    category1 = Category("category1")
+    category2 = Category("category2")
+    return ToDoEntry(name, None, [category1, category2], False, False, index)
