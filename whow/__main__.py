@@ -40,21 +40,22 @@ def print_help() -> None:
 
 def parse_args() -> None:
     # do some sys.argv parsing here
-
-    match sys.argv[1:]: # slicing magic
-        case ["-h"]:
+    print(sys.argv[1:])
+    match sys.argv[1]: # slicing magic
+        case "-h":
             print_help()
-        case ["-V"]:
+        case "-V":
             print(__version__)
-        case ["-c"]:
+        case "-c":
             pass # placeholder
-        case ["todo"]:
-            match sys.argv[2:]:
+        case "todo":
+            match sys.argv[2]:
                 case "add":
                     # guard clauses
                     if len(sys.argv) < 4:
-                        util.warn("You have to put a name for the new todo entry!")
-                    name = sys.argv[3] 
+                        util.error("You have to put a name for the new todo entry!")
+                        exit()
+                    name = sys.argv[3]
                     
                     # set some default values
                     categories: list[str] = []
@@ -66,12 +67,16 @@ def parse_args() -> None:
                     
                     if len(sys.argv) >= 6:
                         categories = sys.argv[5:]
-                
+                        if due_date[0] == "@":
+                            categories.append(due_date) 
+                            due_date = ""
+
                     for category_name in categories:
-                        if not util.check_category_existence(category_name):
-                            util.warn(f"Category {category_name} does not exist!")
+                        if not util.check_category_existence(category_name[1:]):
+                            util.warn(f"Category {category_name[1:]} does not exist!")
+                            exit()
                         
-                        category_classes.append(util.match_name_with_category(category_name))
+                        category_classes.append(util.match_name_with_category(category_name[1:]))
 
                     rv = util.register_todo(util.ToDoEntry(
                         name,
@@ -83,18 +88,18 @@ def parse_args() -> None:
                     util.log(rv) if rv is not None else None
                             
                 case "del":
-                    if len(sys.argv) >= 4:
+                    if len(sys.argv) <= 4:
                         util.warn("Index of todo is required!")
 
-                    index = sys.argv[3]
+                    index = int(sys.argv[3])
                     if not util.del_todo(index):
                         util.error(f"Failed to delete to-do by index {index}!")
 
                 case "mark":
-                    if len(sys.argv) >= 4:
+                    if len(sys.argv) <= 4:
                         util.warn("Index of todo is required!")
                     
-                    index = sys.argv[3]
+                    index = int(sys.argv[3])
                     util.mark_todo(index)
 
                 case _:

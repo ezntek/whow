@@ -23,7 +23,7 @@ import shutil
 import math
 
 from dataclasses import dataclass
-from .colors import Color, Colors, Styles, get_color_class_from_name
+from colors import Color, Colors, Styles, get_color_class_from_name
 
 # class definitions
 @dataclass
@@ -210,11 +210,13 @@ def pop_indextoml_element(element: int) -> None:
     """
     Remove an entry from an index.toml.
     """
-
-    with open(os.path.join(os.environ['HOME'], f"./.local/whow/todos"), "r") as index_toml:
+    
+    with open(os.path.join(os.environ['HOME'], f"./.local/whow/todos/index.toml"), "r") as index_toml:
         indexes: list[int] = toml.loads(index_toml.read())['indexes']
         for count, idx in enumerate(indexes):
             indexes.pop(count) if idx == element else None
+    
+    with open(os.path.join(os.environ['HOME'], f"./.local/whow/todos/index.toml"), "w") as index_toml:
         index_toml.write(toml.dumps({
             "indexes": indexes
         }))
@@ -248,7 +250,7 @@ def del_todo(index: int) -> str:
         
     BASEDIR = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
     todo_name = os.path.splitext(filename.replace("_", " "))[0]
-    todo = parse_todoentry_from_dict(toml.loads(os.path.join(BASEDIR, filename)), filename)
+    todo = parse_todoentry_from_dict(toml.load(os.path.join(BASEDIR, filename)), os.path.splitext(filename)[0])
     
     if index == todo.index:
         os.remove(os.path.join(BASEDIR, filename))

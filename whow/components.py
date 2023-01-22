@@ -17,14 +17,14 @@
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
 
 # core imports
-from .colors import Colors, Styles
+from colors import Colors, Styles
 import datetime
 import calendar
 import toml
 import os
 
 # other imports
-from . import util
+import util
 from dataclasses import dataclass
 
 class ScheduleComponent():
@@ -64,7 +64,7 @@ class DateDisplay():
         self.time = self.date_time_now.strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue}📅 {self.date}{Styles.end} {Styles.bold}{Colors.magenta}🕓 {self.time}{Styles.end}"
+        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue.bg}📅 {self.date}{Styles.end} {Styles.bold}{Colors.magenta.bg}🕓 {self.time}{Styles.end}"
 
 @dataclass
 class Separator():
@@ -141,8 +141,8 @@ class Calendar():
                     if x.date == 0:
                         retval += f"    " # Four Spaces
                     else:
-                        retval += f"  {x.__repr__()} " # 2 then 1 space
+                        retval += f"  {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg}  {x.__repr__()} {Colors.bg_end}" # 2 then 1 space
                 else:
-                    retval += f" {x.__repr__()} "# 1 on either side
+                    retval += f" {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg} {x.__repr__()} {Colors.bg_end}" # 1 on either side
             retval += "\n"
         return retval
