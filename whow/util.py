@@ -28,8 +28,8 @@ from colors import Color, Colors, Styles, get_color_class_from_name
 # class definitions
 @dataclass
 class EventDateTime():
-    date: datetime.date
-    time: datetime.time
+    date: datetime.date = datetime.datetime.now().date()
+    time: datetime.time = datetime.datetime.now().time()
 
     def __repr__(self) -> str:
         return f"{self.date.day}/{self.date.month}/{self.date.year} {self.time.hour}:{self.time.minute}:{self.time.second}"
@@ -56,21 +56,6 @@ class ToDoEntry():
     overdue: bool = False
     ticked: bool = False
     index: int = 0
-
-    def get_dictionary(self) -> dict[str, str | bool | list[dict[str, str]]]:
-        """
-        Get a dictionary for writing TOMLs with.
-        """
-
-        due = f"{self.due.day}/{self.due.month}/{self.due.year}" if self.due is not None else 'N.A.'
-        return {
-            "name": self.name,
-            "due": due,
-            "categories": [c.get_dictionary() for c in self.categories],
-            "overdue": self.overdue.__repr__(),
-            "ticked": self.ticked,
-        }
-    
 @dataclass
 class EventEntry():
     name: str
@@ -78,25 +63,18 @@ class EventEntry():
     event_to: EventDateTime | None
     description: str
     full_day: bool = False
-
-    def get_dictionary(self) -> dict[str, str | bool | None]:
-        return {
-            "name": self.name,
-            "full_day": self.full_day,
-            "from": self.event_from.__repr__(),
-            "to": self.event_to.__repr__() if self.event_to is not None else "",
-            "description": self.description
-        }
+    index: int = 0
+    categories: list[Category] = []
 
 # Function Definitions
-def log(text: str) -> None:
-    print(f"{Styles.bold}{Colors.yellow().colorprint('[>>]', return_string=True)}{Styles.end} {text}")
+def log(text: str, return_string: bool = False) -> None | str:
+    return f"{Styles.bold}{Colors.yellow().colorprint('[>>]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.yellow().colorprint('[>>]', return_string=True)}{Styles.end} {text}")
 
-def error(text: str) -> None:
-    print(f"{Styles.bold}{Colors.red().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
+def error(text: str, return_string: bool = False) -> None | str:
+    return f"{Styles.bold}{Colors.red().colorprint('[!!]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.red().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
 
-def warn(text: str) -> None:
-    print(f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
+def warn(text: str, return_string: bool = False) -> None | str:
+    return f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
 
 
 def indexify_weekday(weekday: int) -> int:
@@ -212,9 +190,10 @@ def pop_indextoml_element(element: int) -> None:
     """
     
     with open(os.path.join(os.environ['HOME'], f"./.local/whow/todos/index.toml"), "r") as index_toml:
-        indexes: list[int] = toml.loads(index_toml.read())['indexes']
+        indexes: list[int | str] = toml.loads(index_toml.read())['indexes']
         for count, idx in enumerate(indexes):
-            indexes.pop(count) if idx == element else None
+            if idx == element:
+                indexes[count] = "None"
     
     with open(os.path.join(os.environ['HOME'], f"./.local/whow/todos/index.toml"), "w") as index_toml:
         index_toml.write(toml.dumps({
@@ -402,8 +381,23 @@ def check_category_existence(name: str) -> bool:
 def match_name_with_category(name: str) -> Category:
     for path in os.listdir(os.path.join(os.environ['HOME'], f"./.local/whow/categories")):
         if os.path.splitext(path)[0] == name:
+            try:
                 return parse_category_from_name(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))['name'])
-    return Category("zombie_category")
+            except NameError:
+                break
+    raise NameError("The category name was not found! Perhaps you did not add it yet?")
+
+def match_category_name_with_filename(name: str) -> str:
+    """
+    Find a filename based on the category name.
+    """
+    name = name.replace(" ", "_").lower()
+
+    for n in os.listdir(os.path.join(os.environ['HOME'], f"./.local/whow/categories")):
+        if n == f"{name}.toml":
+            return(n)
+
+    raise NameError("No category found with name!")
 
 def register_category(category: Category, force: bool = False) -> str | None:
     """
@@ -414,12 +408,25 @@ def register_category(category: Category, force: bool = False) -> str | None:
             warn("A category entry with the same name exists. Aborting")
             return
         warn("A category entry with the same name already exists. Overwriting")
-    
-    with open(os.path.join(os.environ['HOME'], f'./.local/whow/categories/{category.name}.toml'), "w+") as categorytoml:
+
+    n = category.name.replace(" ", "_")
+
+    with open(os.path.join(os.environ['HOME'], f'./.local/whow/categories/{n}.toml'), "w+") as categorytoml:
         t = toml.dumps(category.get_dictionary())
         categorytoml.write(t)
 
     return f"Wrote a new category toml. \n{t}"
+
+def del_category(name: str) -> str:
+    BASEDIR = os.path.join(os.path.join(os.environ['HOME'], f"./.local/whow/categories"))
+    try:
+        filename = match_category_name_with_filename(name)
+        os.remove(os.path.join(BASEDIR, filename))
+        return f"Deleted category: {name}"
+    except NameError:
+        error("A category with this name does not exist! please re-evaluate your input.")
+    return ""
+    
 
 def new_config(destroy: bool = False) -> str:
     """
@@ -453,6 +460,49 @@ def new_config(destroy: bool = False) -> str:
         cfg.write(c)
     
     return f"Dumped toml successfully. \n{c}"
+
+def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = False, use_old_index: bool = False) -> str | None:
+    event_entry.name.replace(" ", "_")
+
+    if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/events/{event_entry.name}.toml")):
+        if not force:
+            warn("An event entry with the same name exists, aborting.") if not quiet else None
+            return
+        warn("An event entry with the same name already exists. Overwriting.") if not quiet else None
+        
+    event_idx = (0, 0)
+    if not use_old_index:
+        # load used indexes
+        idx: list[str | int] = toml.load(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"))['indexes']
+        event_idx = _fill_idx(idx)
+
+        # write the new index.toml
+        with open(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"), "w") as indextoml:
+            toml.dumps({
+                "indexes": event_idx[0]
+            })
+    
+    with open(os.path.join(os.environ['HOME'], f"./.local/whow/events/{event_entry.name.replace(' ', '_')}.toml"), "w") as tml:
+        event_entry_to = event_entry.event_to if event_entry.event_to is not None else EventDateTime()
+
+        t = toml.dumps(
+            {
+                event_entry.name: {
+                    "index": event_idx[1] if not use_old_index else event_entry.index,
+                    "name": event_entry.name,
+                    "event_from": event_entry.event_from.__repr__(),
+                    "event_to": event_entry_to.__repr__(),
+                    "description": event_entry.description,
+                    "full_day": event_entry.full_day,
+                    "categories": [c.name for c in event_entry.categories],
+                }
+            }
+        )
+        tml.write(t)
+    
+    return f"Registered New Event: \n{t}"
+
+            
 
 # Development code
 def debug_create_todo(name: str) -> ToDoEntry:

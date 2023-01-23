@@ -141,8 +141,8 @@ class Calendar():
                     if x.date == 0:
                         retval += f"    " # Four Spaces
                     else:
-                        retval += f"  {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg}  {x.__repr__()} {Colors.bg_end}" # 2 then 1 space
+                        retval += f"  {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg}  {x.__repr__()} {Colors.fg_end}" # 2 then 1 space
                 else:
-                    retval += f" {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg} {x.__repr__()} {Colors.bg_end}" # 1 on either side
+                    retval += f" {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg} {x.__repr__()}" # 1 on either side
             retval += "\n"
         return retval

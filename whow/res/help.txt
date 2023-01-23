@@ -15,7 +15,12 @@ Options:
             add <name> [due|@category]       Add a todo
             del <index|all>                  Delete a todo by index
             mark <index>                     Mark done/undone by index
+            clean                            Clean the ~/.local/whow folder by resetting it to the defaults.
+        
+        category <subcommand>
+            add <name> <color>               Add a new category, with a color.
+            del <name>                       Delete a category.
 
         event <subcommand>
-            add <date> <name> [@category]     Add an event by index
+            add <date> <name> [@category]    Add an event
             del <index>                      Delete an event by index

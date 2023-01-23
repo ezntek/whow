@@ -23,6 +23,7 @@ import datetime
 
 # Other imports
 import util
+import colors
 import components as cmp
 
 # Constant Definitions
@@ -40,7 +41,6 @@ def print_help() -> None:
 
 def parse_args() -> None:
     # do some sys.argv parsing here
-    print(sys.argv[1:])
     match sys.argv[1]: # slicing magic
         case "-h":
             print_help()
@@ -49,62 +49,129 @@ def parse_args() -> None:
         case "-c":
             pass # placeholder
         case "todo":
-            match sys.argv[2]:
-                case "add":
-                    # guard clauses
-                    if len(sys.argv) < 4:
-                        util.error("You have to put a name for the new todo entry!")
-                        exit()
-                    name = sys.argv[3]
-                    
-                    # set some default values
-                    categories: list[str] = []
-                    category_classes: list[util.Category] = []
-                    due_date = ""
+            try:
+                match sys.argv[2]:
+                    case "add":
+                        # guard clauses
+                        if len(sys.argv) < 4:
+                            util.error("Missing arguments!")
+                            print_help()
+                            exit()
+                        name = sys.argv[3]
+                        
+                        # set some default values
+                        categories: list[str] = []
+                        category_classes: list[util.Category] = []
+                        due_date: str = ""
 
-                    if len(sys.argv) >= 5:
-                        due_date = sys.argv[4]
-                    
-                    if len(sys.argv) >= 6:
-                        categories = sys.argv[5:]
+                        # stdin checking
+                        if len(sys.argv) >= 5:
+                            due_date = sys.argv[4]
+                        
+                        if len(sys.argv) >= 6:
+                            categories = sys.argv[5:]
+                        
                         if due_date[0] == "@":
                             categories.append(due_date) 
                             due_date = ""
 
-                    for category_name in categories:
-                        if not util.check_category_existence(category_name[1:]):
-                            util.warn(f"Category {category_name[1:]} does not exist!")
-                            exit()
-                        
-                        category_classes.append(util.match_name_with_category(category_name[1:]))
-
-                    rv = util.register_todo(util.ToDoEntry(
-                        name,
-                        None if due_date is None else util.split_string_date(due_date),
-                        category_classes,
-                        overdue = True if util.split_string_date(due_date) < datetime.datetime.today().date() else False
-                    ))
-
-                    util.log(rv) if rv is not None else None
+                        # check for category existence
+                        for category_name in categories:
+                            if not util.check_category_existence(category_name[1:]):
+                                util.warn(f"Category {category_name[1:]} does not exist!")
+                                exit()
                             
-                case "del":
-                    if len(sys.argv) <= 4:
-                        util.warn("Index of todo is required!")
+                            category_classes.append(util.match_name_with_category(category_name[1:]))
 
-                    index = int(sys.argv[3])
-                    if not util.del_todo(index):
-                        util.error(f"Failed to delete to-do by index {index}!")
+                        # call the backend
+                        rv = util.register_todo(util.ToDoEntry(
+                            name,
+                            None if due_date is None else util.split_string_date(due_date),
+                            category_classes,
+                            overdue = True if util.split_string_date(due_date) < datetime.datetime.today().date() else False
+                        ))
 
-                case "mark":
-                    if len(sys.argv) <= 4:
-                        util.warn("Index of todo is required!")
+                        util.log(rv) if rv is not None else None
+                                
+                    case "del":
+                        if len(sys.argv) <= 4:
+                            util.warn("Index of todo is required!")
+
+                        index = int(sys.argv[3])
+                        if not util.del_todo(index):
+                            util.error(f"Failed to delete to-do by index {index}!")
+
+                    case "mark":
+                        if len(sys.argv) <= 4:
+                            util.warn("Index of todo is required!")
+                        
+                        index = int(sys.argv[3])
+                        util.mark_todo(index)
                     
-                    index = int(sys.argv[3])
-                    util.mark_todo(index)
+                    case "clean":
+                        match input(f"{util.warn('This is a highly destructive action, are you sure? (y/n) ', return_string=True)}").lower():
+                            case "yes":
+                                util.init_todos(destroy=True)
+                            case "y":
+                                util.init_todos(destroy=True)
+                            case _:
+                                util.log("aborting...")
+
+                    case _:
+                        print_help()
+            except IndexError:
+                print_help()
+
+        case "category":
+            match sys.argv[2]: # get started here
+                case "add":
+                    if len(sys.argv) <= 3:
+                        util.error("Name of category required!")
+                        exit()
+                    
+                    category_name: str = ""
+                    category_color: colors.Color
+                    
+                    if len(sys.argv) >= 4:
+                        category_name = sys.argv[3]
+
+                    if len(sys.argv) >= 5:
+                        category_color = colors.get_color_class_from_name(sys.argv[4].lower())
+                    else:
+                        category_color = colors.Colors.white()
+                    
+                    category_reg = util.Category(category_name, category_color)
+                    util.register_category(category_reg)
+                
+                case "del":
+                    if len(sys.argv) <= 3:
+                        util.error("Name for deletion required!")
+                        category_name = sys.argv[3]
+                        util.del_category(category_name)
 
                 case _:
                     print_help()
+
+        case "event":
+            match sys.argv[2]:
+                case "add":
+                    if len(sys.argv) <= 3:
+                        util.error("Missing arguments!")
+                        print_help()
+                        exit()
+
+                    event_description = sys.argv[3]
+
+                    categories: list[str] = []
+                    category_classes: list[util.Category] = []
+                    event_from: str = ""
                 
+                case "del":
+                    pass
+                    
+                case _:
+                    print_help()
+
         case _: # default option (no arguments)
             show()
 
@@ -122,6 +189,8 @@ def main() -> None:
     except KeyboardInterrupt:
         util.log("Interrupt signal received, quitting..")
         sys.exit()
+    except IndexError:
+        pass
     
 # Driver Code
 if __name__ == "__main__":
