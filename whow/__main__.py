@@ -123,7 +123,7 @@ def parse_args() -> None:
                 print_help()
 
         case "category":
-            match sys.argv[2]: # get started here
+            match sys.argv[2]:
                 case "add":
                     if len(sys.argv) <= 3:
                         util.error("Name of category required!")
@@ -148,6 +148,9 @@ def parse_args() -> None:
                         util.error("Name for deletion required!")
                         category_name = sys.argv[3]
                         util.del_category(category_name)
+                
+                case "list":
+                    util.list_categories()
 
                 case _:
                     print_help()
@@ -160,14 +163,21 @@ def parse_args() -> None:
                         print_help()
                         exit()
 
-                    event_description = sys.argv[3]
-
+                    event_date_str = sys.argv[3]
                     categories: list[str] = []
                     category_classes: list[util.Category] = []
                     event_from: str = ""
+
+                    if len(sys.argv) >= 5:
+                        pass
+
+
                 
                 case "del":
-                    pass
+                    if len(sys.argv) <= 3:
+                        util.error("Index for deletion required!")
+                        print_help()
+                        exit()
                     
                 case _:
                     print_help()

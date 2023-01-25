@@ -41,7 +41,7 @@ class Category():
 
     def get_dictionary(self) -> dict[str, str]:
         return {
-            "name": self.name.lower(), # TODO: replace whitespaces with underscores
+            "name": self.name.lower(),
             "color": self.color.name,
         }
     
@@ -56,15 +56,16 @@ class ToDoEntry():
     overdue: bool = False
     ticked: bool = False
     index: int = 0
+
 @dataclass
 class EventEntry():
     name: str
     event_from: EventDateTime
     event_to: EventDateTime | None
     description: str
+    categories: list[Category]
     full_day: bool = False
     index: int = 0
-    categories: list[Category] = []
 
 # Function Definitions
 def log(text: str, return_string: bool = False) -> None | str:
@@ -126,6 +127,11 @@ def print_center(string: str, width: int, bias_left: bool = True, return_string:
             return f"{' '*int(padding_width/2)}{string}{' '*int(padding_width/2)}"
         print(f"{' '*int(padding_width/2)}{string}{''*int(padding_width/2)}")
 
+def get_eventdatetime_from_str(string: str) -> EventDateTime:
+    l1 = string.split(" ") # ["d/m/y", "h:m:s"]
+    date_split = l1[0].split("/")
+    time_split = l1[1].split(":")
+    return EventDateTime(datetime.date(int(date_split[2]), int(date_split[1]), int(date_split[0])), datetime.time(int(time_split[0]), int(time_split[1]), int(time_split[2])))
 
 def parse_category_from_name(s: str) -> Category:
     """
@@ -145,7 +151,7 @@ def parse_category_from_name(s: str) -> Category:
     
 def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str, str]]]], file_name: str) -> ToDoEntry:
     """
-    Parse a dictionary that was parsed from a `ToDoEvent` into a `ToDoEvent`.
+    Parse a dictionary that was parsed from a `ToDoEntry` into a `ToDoEntry`.
     `file_name` should be the name of the file WITHOUT the extension.
     """
 
@@ -181,21 +187,24 @@ def _fill_idx(l: list[int | str]) -> tuple[list[int | str], int]:
     if not found_spot:
         retval.append(len(retval))
         idx = len(retval) - 1
-    
+     
     return (retval, idx)
 
-def pop_indextoml_element(element: int) -> None:
+def pop_indextoml_element(element: int, type: str = "todos") -> None:
     """
     Remove an entry from an index.toml.
     """
+
+    if type != "todos" and type != "events":
+        type = "todos"
     
-    with open(os.path.join(os.environ['HOME'], f"./.local/whow/todos/index.toml"), "r") as index_toml:
+    with open(os.path.join(os.environ['HOME'], f"./.local/whow/{type}/index.toml"), "r") as index_toml:
         indexes: list[int | str] = toml.loads(index_toml.read())['indexes']
         for count, idx in enumerate(indexes):
             if idx == element:
                 indexes[count] = "None"
     
-    with open(os.path.join(os.environ['HOME'], f"./.local/whow/todos/index.toml"), "w") as index_toml:
+    with open(os.path.join(os.environ['HOME'], f"./.local/whow/{type}/index.toml"), "w") as index_toml:
         index_toml.write(toml.dumps({
             "indexes": indexes
         }))
@@ -215,6 +224,7 @@ def match_todo_index(index: int) -> str:
         if index == data[todo_name]["index"]:
             return filename
     raise IndexError('No file with this to-do index exists! Perhaps the index.toml is corrupted?')
+
 
 def del_todo(index: int) -> str:
     """
@@ -327,7 +337,7 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False, quiet: bool = Fals
 
     return f"Registered New To-Do: \n{t}"
 
-def init_todos(destroy: bool = False):
+def init_todos(destroy: bool = False) -> None:
     """
     Create the necessary paths for the To-Dos and Events.
     """
@@ -502,10 +512,79 @@ def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = F
     
     return f"Registered New Event: \n{t}"
 
-            
+def parse_evententry_from_dict(d: dict[str, dict[str, str | bool | list[str | int]]], filename: str) -> EventEntry:
+    """
+    Parse a dictionary that was parsed from an `EventEntry` into an `EventEntry`.
+    `file_name` should be the name of the file WITHOUT the extension
+    """
+
+    return EventEntry(
+        str(d[filename]["name"]).replace("_", " "),
+        get_eventdatetime_from_str(str(d[filename]["from"])),
+        get_eventdatetime_from_str(str(d[filename]["to"])) if d[filename]["to"] != "None" else None,
+        str(d[filename]["description"]),
+        [parse_category_from_name(c) for c in d[filename]["categories"]], # type: ignore
+        full_day=True if d[filename]["to"] != "None" else False
+    )
+
+def match_event_index(index: int) -> str:
+    """
+    Find an event filename based on its index.
+    """
+
+    BASEDIR = os.path.join(os.environ['HOME'], f"./.local/whow/events")
+
+    for filename in os.listdir(BASEDIR):
+        if filename == "index.toml":
+            continue
+
+        d = toml.load(os.path.join(BASEDIR, filename))
+        if index == d[os.path.splitext(filename.replace("_", " "))[0]]["index"]:
+            return filename
+    
+    raise IndexError("No file with this event index exists! Perhaps the index.toml is corrupted?")
+
+def del_event(index: int) -> str:
+    """
+    Delete an event by its index.
+    """
+
+    try:
+        filename = match_event_index(index)
+    except IndexError:
+        error("A to-do with this index does not exist! Please re-evaluate your input, or perhaps the index.toml is corrupted?")
+        return ""
+    
+    BASEDIR = os.path.join(os.environ['HOME'], f"./.local/whow/events")
+    event_name = os.path.splitext(filename.replace("_", " "))[0]
+    event = parse_evententry_from_dict(toml.load(os.path.join(BASEDIR, filename)), filename)
+
+    if index == event.index:
+        os.remove(os.path.join(BASEDIR, filename))
+        pop_indextoml_element(index, type = "events")
+        return f"deleted event: {event_name}"
+    return "" 
+
+def get_category_from_dict(d: dict) -> Category:
+    return Category(
+        d["name"],
+        get_color_class_from_name(d["color"].lower())
+    )
+
+def list_categories() -> None:
+    for path in os.path.join(os.environ['HOME'], "./.local/whow/categories"):
+        try:
+            print(get_category_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))["name"]))
+        except KeyError or TypeError:
+            warn(f"The category file {path} in the folder is corrupted!")
 
 # Development code
 def debug_create_todo(name: str) -> ToDoEntry:
     category1 = Category("category1")
     category2 = Category("category2")
     return ToDoEntry(name, None, [category1, category2])
+
+def debug_create_event(name: str) -> EventEntry:
+    c1 = Category("category1")
+    c2 = Category("category2")
+    return EventEntry(name, EventDateTime(), None, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", [c1, c2], full_day=True)

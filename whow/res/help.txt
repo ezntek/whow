@@ -20,6 +20,7 @@ Options:
         category <subcommand>
             add <name> <color>               Add a new category, with a color.
             del <name>                       Delete a category.
+            list                             List all categories that exists.
 
         event <subcommand>
             add <date> <name> [@category]    Add an event
