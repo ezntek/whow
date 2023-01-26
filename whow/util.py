@@ -77,6 +77,10 @@ def error(text: str, return_string: bool = False) -> None | str:
 def warn(text: str, return_string: bool = False) -> None | str:
     return f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
 
+def clean_empty_strings_in_list(l: list[str]) -> list[str]:
+    for count, element in enumerate(l):
+        l.pop(count) if element == "" else None
+    return l
 
 def indexify_weekday(weekday: int) -> int:
     """
@@ -577,6 +581,52 @@ def list_categories() -> None:
             print(get_category_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))["name"]))
         except KeyError or TypeError:
             warn(f"The category file {path} in the folder is corrupted!")
+
+def parse_argv_event_datetime(string: str, debug_return_dict: bool = False) -> EventDateTime | dict:
+    # either:
+    #   "mm/dd/YYYY 6:09:34 PM" | "mm/dd/YYYY 6:09PM"
+    # or:
+    #   "mm/dd/YYYY 18:09:34"
+    #
+    # where seconds can be omitted.
+    
+    twelve_hour_time: bool = True if "PM" or "AM" in string else False
+    afternoon_time: bool = False
+    
+    s1 = clean_empty_strings_in_list(string.split(" ")) # ["mm/dd/YYYY", "6:09", "PM"] or ["mm/dd/YYYY", "6:09PM"]
+    if len(s1) == 3 and s1[-1].lower() == "PM":
+        afternoon_time = True
+        s1.pop(2) # ["mm/dd/YYYY", "6:09"]
+        
+    if len(s1) == 2 and s1[-1][-2:].lower() == "PM":
+        afternoon_time = True
+        s1[-1] = s1[-1][:-2] # ["mm/dd/YYYY", "6:09PM"] -> ["mm/dd/YYYY", "6:09"]
+    
+    # len(s1) should be 2 by now
+
+    date_part_list = s1[0].split("/")
+    time_part_list = s1[1].split(":")
+
+    if twelve_hour_time:
+        time_part_list[0] = str(int(time_part_list[0]) + 12) if afternoon_time else time_part_list[0]
+
+    date_part = datetime.date(int(date_part_list[2]), int(date_part_list[1]), int(date_part_list[0]))
+    time_part = datetime.time(int(time_part_list[0]), int(time_part_list[1]), int(time_part_list[2])) if len(time_part_list) == 3 else datetime.time(int(time_part_list[0]), int(time_part_list[1]), 0)
+
+    retval = EventDateTime(date_part, time_part)
+    return retval if not debug_return_dict else {
+        "date_part": {
+            "year": date_part.year,
+            "month": date_part.month,
+            "day": date_part.day,
+        },
+        "time_part": {
+            "hours": time_part.hour,
+            "month": time_part.minute,
+            "second": time_part.second
+        }
+    }
+
 
 # Development code
 def debug_create_todo(name: str) -> ToDoEntry:

@@ -163,10 +163,10 @@ def parse_args() -> None:
                         print_help()
                         exit()
 
-                    event_date_str = sys.argv[3]
+                    event_from_str = sys.argv[3]
+                    event_to_str   = sys.argv[4] if sys.argv[4] != "fullday"
                     categories: list[str] = []
                     category_classes: list[util.Category] = []
-                    event_from: str = ""
 
                     if len(sys.argv) >= 5:
                         pass
