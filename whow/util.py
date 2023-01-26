@@ -417,19 +417,21 @@ def register_category(category: Category, force: bool = False) -> str | None:
     """
     Register a new category
     """
-    if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/categories/{category.name}")):
-        if not force:
-            warn("A category entry with the same name exists. Aborting")
-            return
-        warn("A category entry with the same name already exists. Overwriting")
-
+    
     n = category.name.replace(" ", "_")
+
+    if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/categories/{n}.toml")):
+        if not force:
+            warn("A category entry with the same name exists. Aborting...")
+            return
+        warn("A category entry with the same name already exists. Overwriting...")
 
     with open(os.path.join(os.environ['HOME'], f'./.local/whow/categories/{n}.toml'), "w+") as categorytoml:
         t = toml.dumps(category.get_dictionary())
         categorytoml.write(t)
 
     return f"Wrote a new category toml. \n{t}"
+
 
 def del_category(name: str) -> str:
     BASEDIR = os.path.join(os.path.join(os.environ['HOME'], f"./.local/whow/categories"))
@@ -440,7 +442,6 @@ def del_category(name: str) -> str:
     except NameError:
         error("A category with this name does not exist! please re-evaluate your input.")
     return ""
-    
 
 def new_config(destroy: bool = False) -> str:
     """
@@ -569,16 +570,16 @@ def del_event(index: int) -> str:
         return f"deleted event: {event_name}"
     return "" 
 
-def get_category_from_dict(d: dict) -> Category:
+def get_category_from_dict(d: dict[str, str]) -> Category:
     return Category(
         d["name"],
         get_color_class_from_name(d["color"].lower())
     )
 
 def list_categories() -> None:
-    for path in os.path.join(os.environ['HOME'], "./.local/whow/categories"):
+    for path in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/categories")):
         try:
-            print(get_category_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))["name"]))
+            print(get_category_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))))
         except KeyError or TypeError:
             warn(f"The category file {path} in the folder is corrupted!")
 

@@ -10,16 +10,18 @@ Commands:
     show [todos|events|important|schedule]                      Show to-do's/events/schedule
         
     todo <subcommand>
-        add <name> [due|@category]                              Add a todo
+        add <name> [due|@categories]                            Add a todo
         del <index|all>                                         Delete a todo by index
         mark <index>                                            Mark done/undone by index
-        clean                                                   Clean the ~/.local/whow folder by resetting it to the defaults.
+        clean                                                   Clean the ~/.local/whow folder by resetting it to the defaults. This action is highly destructive.
         
     category <subcommand>
         add <name> <color>                                      Add a new category, with a color.
         del <name>                                              Delete a category.
+        clean                                                   Remove all categories, this action is highly destructive.
         list                                                    List all categories that exists.
 
     event <subcommand>
-        add <start> [fullday|<end>] <name> <desc> [@category]   Add an event.
+        add <start> [fullday|<end>] <name> [<desc>|@categories] Add an event. Use "fullday" instead of an end date-time to create
+                                                                a full-day event, where the starting date-time will be used as the day.
         del <index>                                             Delete an event by index.
