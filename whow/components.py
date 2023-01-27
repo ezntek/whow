@@ -29,8 +29,24 @@ from dataclasses import dataclass
 
 class ScheduleComponent():
     pass
+
 class EventsComponent():
-    pass
+    def __init__(self) -> None:
+        self.events: list[util.EventEntry] = []
+        self.load_events()
+    
+    def load_events(self) -> None:
+        BASEDIR = os.path.join(os.environ['HOME'], "./.local/whow/events/")
+        for filename in os.listdir(BASEDIR):
+            self.events.append(
+                util.parse_evententry_from_dict(toml.load(os.path.join(BASEDIR, filename)),
+                filename)
+            ) if filename != "index.toml" else None
+    
+    def __repr__(self) -> str:
+        retval: str = ""
+        retval += f"{Styles.bold}Events{Styles.end}"
+        return retval
 class ToDoComponent():
     def __init__(self) -> None:
         self.todos: list[util.ToDoEntry] = []

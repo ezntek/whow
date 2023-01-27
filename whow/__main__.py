@@ -168,31 +168,45 @@ def parse_args() -> None:
         case "event":
             match sys.argv[2]:
                 case "add":
-                    if len(sys.argv) <= 3:
-                        print_help()
-                        util.error("Missing arguments!")
-                        return
-
+                    print(sys.argv)
                     if len(sys.argv) <= 4:
+                        print_help()
+                        util.error("Missing arguments... (The name of the event is required!)")
+                        return
+                    event_name = sys.argv[3]
+
+                    if len(sys.argv) <= 5:
                         print_help()
                         util.error("The starting date/time for the event is required!")
                         return
-                    event_from_str: str = sys.argv[3]
+                    event_from_str: str = sys.argv[4]
                     
-                    if len(sys.argv) <= 5:
+                    if len(sys.argv) <= 6:
                         print_help()
                         util.error("The ending date/time for the event is required!\nAlternatively, you can also use \'fullday\' instead, to create a full-day event.")
                         return
-                    event_to_str: str | bool = sys.argv[4] if sys.argv[4] != "fullday" else True
+                    event_to_str: str = sys.argv[5]
 
-                    if len(sys.argv) <= 6:
-                        print_help()
-                        util.error("The name of the event is required!")
-                    event_name = sys.argv[5]
+                    category_classes: list[util.Category] = [util.parse_category_from_name(c[1:])
+                                                                for c in sys.argv[6:]
+                                                                    if c[0] == "@"]
+                    
+                    description = sys.argv[6] if sys.argv[6][0] != "@" else ""
 
-                    category_classes: list[util.Category] = [util.parse_category_from_name(c[1:]) for c in sys.argv[7:]]
+                    print(f"name: {event_name}, from: {event_from_str}, to: {event_to_str}, dsc: {description}, ctg: {category_classes}")
+                    print(sys.argv)
 
-                
+                    rv = util.register_event(util.EventEntry(
+                        event_name,
+                        util.parse_argv_event_datetime(event_from_str),
+                        util.parse_argv_event_datetime(event_to_str) if event_to_str != "fullday" else None,
+                        description,
+                        categories=category_classes,
+                        full_day=True if event_to_str == "fullday" else False,
+                    ))
+
+                    util.log(rv)
+
                 case "del":
                     if len(sys.argv) <= 3:
                         print_help()

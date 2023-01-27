@@ -476,13 +476,13 @@ def new_config(destroy: bool = False) -> str:
     
     return f"Dumped toml successfully. \n{c}"
 
-def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = False, use_old_index: bool = False) -> str | None:
+def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = False, use_old_index: bool = False) -> str:
     event_entry.name.replace(" ", "_")
 
     if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/events/{event_entry.name}.toml")):
         if not force:
             warn("An event entry with the same name exists, aborting.") if not quiet else None
-            return
+            return ""
         warn("An event entry with the same name already exists. Overwriting.") if not quiet else None
         
     event_idx = (0, 0)
@@ -583,7 +583,7 @@ def list_categories() -> None:
         except KeyError or TypeError:
             warn(f"The category file {path} in the folder is corrupted!")
 
-def parse_argv_event_datetime(string: str, debug_return_dict: bool = False) -> EventDateTime | dict:
+def parse_argv_event_datetime(string: str) -> EventDateTime:
     # either:
     #   "mm/dd/YYYY 6:09:34 PM" | "mm/dd/YYYY 6:09PM"
     # or:
@@ -614,20 +614,8 @@ def parse_argv_event_datetime(string: str, debug_return_dict: bool = False) -> E
     date_part = datetime.date(int(date_part_list[2]), int(date_part_list[1]), int(date_part_list[0]))
     time_part = datetime.time(int(time_part_list[0]), int(time_part_list[1]), int(time_part_list[2])) if len(time_part_list) == 3 else datetime.time(int(time_part_list[0]), int(time_part_list[1]), 0)
 
-    retval = EventDateTime(date_part, time_part)
-    return retval if not debug_return_dict else {
-        "date_part": {
-            "year": date_part.year,
-            "month": date_part.month,
-            "day": date_part.day,
-        },
-        "time_part": {
-            "hours": time_part.hour,
-            "month": time_part.minute,
-            "second": time_part.second
-        }
-    }
-
+    return EventDateTime(date_part, time_part)
+    
 
 # Development code
 def debug_create_todo(name: str) -> ToDoEntry:
