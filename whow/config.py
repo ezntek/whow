@@ -31,13 +31,14 @@ class Config():
                 time_format:        int       = 12,
                 sections:           list[str] = [ "separator", "caldate", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]) -> None:
         "Create a new config instance."
-        
+
         self.default_separator = default_separator
         self.seperator_length = seperator_length
         self.enable_emojis = enable_emojis
         self.time_format = time_format
         self.sections = sections
 
+# hello ??????????????????????
         self.CONFPATH = os.path.join(os.environ['HOME'], "./.config/whow/config.toml")
         if os.path.exists(self.CONFPATH):
             self.load_cfg()
