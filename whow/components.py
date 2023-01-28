@@ -17,30 +17,67 @@
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
 
 # core imports
-from .colors import Colors, Styles
+from colors import Colors, Styles
 import datetime
 import calendar
 import toml
 import os
 
 # other imports
-from . import util
+import util
 from dataclasses import dataclass
+
+def clear_none(l: list) -> list:
+    for count, element in enumerate(l):
+        l.pop(count) if element is None else None
+    return l
 
 class ScheduleComponent():
     pass
+
 class EventsComponent():
-    pass
+    def __init__(self) -> None:
+        self.events: list[util.EventEntry] = []
+        self.load_events()
+    
+    def load_events(self) -> None:
+        for filename in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/events/")):
+            if filename != "index.toml":
+                with open(os.path.join(os.environ['HOME'], "./.local/whow/events", filename), "r") as t:
+                    self.events.append(util.parse_evententry_from_dict(toml.loads(t.read()), os.path.splitext(filename)[0].replace("_", " ")))
+
+    def datedisplay(self, event: util.EventEntry) -> str:
+        return f"{Colors.white()} {event.event_from.__repr__()} {Styles.end}"
+        
+    def __repr__(self) -> str:
+        retval: str = ""
+        retval += f"{Styles.bold}Events{Styles.end}"
+
+        categories_string: str = ""
+
+        for event in self.events:
+            retval += self.datedisplay(event)
+            for category in event.categories:
+                categories_string += f"{category.__repr__()} "
+            retval += util.fprint(f"{Styles.bold}#{event.index} {self.datedisplay(event)} {categories_string}")
+
+        return retval
+
 class ToDoComponent():
     def __init__(self) -> None:
         self.todos: list[util.ToDoEntry] = []
+        self.important_todos: list[util.ToDoEntry] = []
         self.load_todos()
+        self.show_important: bool = False
 
     def load_todos(self) -> None:
         for filename in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/todos/")):
             if filename != "index.toml":
-                with open(os.path.join(os.environ['HOME'], "./.local/whow/todos", filename), "r") as t:
-                    self.todos.append(util.parse_todoentry_from_dict(toml.loads(t.read()), os.path.splitext(filename)[0]))
+                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " "))
+                    if util.parse_category_from_name("! important") in todo.categories:
+                        self.important_todos.append(todo)
+                    else:
+                        self.todos.append(todo)
 
     def __repr__(self) -> str:
         retval: str = ""
@@ -51,8 +88,11 @@ class ToDoComponent():
         for todo in self.todos:
             for category in todo.categories:
                 categories_string += f"{category.__repr__()} "
-            retval += f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n"
+            retval += util.fprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n")
         return retval
+
+class ImportantComponent():
+    pass
 
 class DateDisplay():
     def __init__(self) -> None:
@@ -64,7 +104,7 @@ class DateDisplay():
         self.time = self.date_time_now.strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue}📅 {self.date}{Styles.end} {Styles.bold}{Colors.magenta}🕓 {self.time}{Styles.end}"
+        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue.bg}{util.emoji('📅')} {self.date}{Styles.end} {Styles.bold}{Colors.magenta.bg}{util.emoji('🕓')} {self.time}{Styles.end}"
 
 @dataclass
 class Separator():
@@ -141,8 +181,8 @@ class Calendar():
                     if x.date == 0:
                         retval += f"    " # Four Spaces
                     else:
-                        retval += f"  {x.__repr__()} " # 2 then 1 space
+                        retval += f"  {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg}  {x.__repr__()} {Colors.fg_end}" # 2 then 1 space
                 else:
-                    retval += f" {x.__repr__()} "# 1 on either side
+                    retval += f" {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg} {x.__repr__()}" # 1 on either side
             retval += "\n"
         return retval

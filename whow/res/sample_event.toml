@@ -1,8 +1,10 @@
 [name_of_event]
+index = 69
 name = "name_of_event"
 full_day = false
-from = "4/2/069 12:34:56" # Day/Month/Year hours:minutes:seconds
-to = "4/3/069 13:45:06"
+event_from = "4/2/069 12:34:56" # Day/Month/Year hours:minutes:seconds
+event_to = "4/3/069 13:45:06" # can be "None"
+categories = ["Something", "SomethingElse"]
 description = """
 TheDescription.
 Yadda-Yadda-Ya.

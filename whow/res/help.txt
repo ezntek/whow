@@ -1,21 +1,27 @@
 Usage: whow [option] [command] <args>
 
-`whow show` will be the default command, if no arguments were given.
+`whow show` will be the default command, if no arguments are given.
 
 Options:
     -h    --help          Show this help screen
     -V    --version       Print version
-    -c    --conf <file>   Specify a config file instead of one at the default path
 
-    Commands:
-        edit <rc|todos|events|schedule>            Edit file with editor
-        show [todos|events|important|schedule]     Show to-do's/events/schedule
+Commands:
+    show [todos|events|important|schedule]                      Show to-do's/events/schedule
         
-        todo <subcommand>
-            add <name> [due|@category]       Add a todo
-            del <index|all>                  Delete a todo by index
-            mark <index>                     Mark done/undone by index
+    todo <subcommand>
+        add <name> [due|@categories]                            Add a todo
+        del <index|all>                                         Delete a todo by index
+        mark <index>                                            Mark done/undone by index
+        clean                                                   Clean the ~/.local/whow folder by resetting it to the defaults. This action is highly destructive.
+        
+    category <subcommand>
+        add <name> <color>                                      Add a new category, with a color.
+        del <name>                                              Delete a category.
+        clean                                                   Remove all categories, this action is highly destructive.
+        list                                                    List all categories that exists.
 
-        event <subcommand>
-            add <date> <name> [@category]     Add an event by index
-            del <index>                      Delete an event by index
+    event <subcommand>
+        add <name> <start> [fullday|<end>] [desc] [@categories] Add an event. Use "fullday" instead of an end date-time to create
+                                                                a full-day event, where the starting date-time will be used as the day.
+        del <index>                                             Delete an event by index.

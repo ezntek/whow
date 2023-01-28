@@ -122,21 +122,21 @@ def get_color_class_from_name(name: str) -> Color: # type: ignore
         """
 
         match name:
-            case "Black":
+            case "black":
                 return Black()
-            case "Red":
+            case "red":
                 return Red()
-            case "Green":
+            case "green":
                 return Green()
-            case "Yellow":
+            case "yellow":
                 return Yellow()
-            case "Blue":
+            case "blue":
                 return Blue()
-            case "Magenta":
+            case "magenta":
                 return Magenta()
-            case "Cyan":
+            case "cyan":
                 return Cyan()
-            case "White":
+            case "white":
                 return White()
             case _:
                 return White()
