@@ -108,20 +108,19 @@ def parse_args() -> None:
                         
                         index = int(sys.argv[3])
                         util.mark_todo(index)
-                    
-                    case "clean":
-                        match input(f"{util.warn('This is a highly destructive action, are you sure? (y/n) ', return_string=True)}").lower():
-                            case "yes":
-                                util.init_todos(destroy=True)
-                            case "y":
-                                util.init_todos(destroy=True)
-                            case _:
-                                util.log("aborting...")
-
                     case _:
                         print_help()
             except IndexError:
                 print_help()
+                    
+        case "clean":
+            match input(f"{util.warn('This is a highly destructive action, are you sure? (y/n) ', return_string=True)}").lower():
+                case "yes":
+                    util.init(destroy=True)
+                case "y":
+                    util.init(destroy=True)
+                case _:
+                    util.log("aborting...")
 
         case "category":
             match sys.argv[2]:
@@ -157,8 +156,10 @@ def parse_args() -> None:
                     match input(f"{util.warn('This is a highly destructive action, are you sure? (y/n) ', return_string=True)}").lower():
                         case "yes":
                             shutil.rmtree(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
+                            os.mkdir(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
                         case "y":
                             shutil.rmtree(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
+                            os.mkdir(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
                         case _:
                             util.log("aborting...")
                             
@@ -192,26 +193,25 @@ def parse_args() -> None:
                                                                     if c[0] == "@"]
                     
                     description = sys.argv[6] if sys.argv[6][0] != "@" else ""
-
-                    print(f"name: {event_name}, from: {event_from_str}, to: {event_to_str}, dsc: {description}, ctg: {category_classes}")
-                    print(sys.argv)
-
+                    print(event_to_str)
                     rv = util.register_event(util.EventEntry(
                         event_name,
                         util.parse_argv_event_datetime(event_from_str),
-                        util.parse_argv_event_datetime(event_to_str) if event_to_str != "fullday" else None,
+                        None if event_to_str.lower() == "fullday" else util.parse_argv_event_datetime(event_to_str),
                         description,
                         categories=category_classes,
-                        full_day=True if event_to_str == "fullday" else False,
+                        full_day=True if event_to_str.lower() == "fullday" else False,
                     ))
 
                     util.log(rv)
 
                 case "del":
-                    if len(sys.argv) <= 3:
+                    if len(sys.argv) <= 4:
                         print_help()
                         util.error("Index for deletion required!")
                         return
+                    idx = int(sys.argv[3])
+                    util.log(util.del_event(idx))
                     
                 case _:
                     print_help()
@@ -225,7 +225,8 @@ def show() -> None:
     print(cmp.Separator(length=55))
     print(cmp.Calendar())
     print(cmp.Separator(mode="equals", length=55))
-    
+
+ 
 # Main Function
 def main() -> None:
     try:
