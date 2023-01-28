@@ -19,8 +19,6 @@
 # Imports
 import colorama
 
-from dataclasses import dataclass
-
 # Class Definitions
 
 # Color Classes

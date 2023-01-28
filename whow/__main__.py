@@ -26,6 +26,7 @@ import shutil
 import util
 import colors
 import components as cmp
+from config import Config
 
 # Constant Definitions
 __version__ = "0.1.0"
@@ -165,7 +166,6 @@ def parse_args() -> None:
                             
                 case _:
                     print_help()
-
         case "event":
             match sys.argv[2]:
                 case "add":
@@ -220,15 +220,15 @@ def parse_args() -> None:
             show()
 
 def show() -> None:
-    print(cmp.Separator(length=55))
-    print(cmp.DateDisplay())
-    print(cmp.Separator(length=55))
-    print(cmp.Calendar())
-    print(cmp.Separator(mode="equals", length=55))
+    sections = cmp.build_component_list(Config())
 
- 
+    for section in sections:
+        print(section.__repr__())
+
 # Main Function
 def main() -> None:
+    if not os.path.isdir(os.path.join(os.environ['HOME'], "./.config/whow")) or os.path.isdir(os.path.join(os.environ['HOME'], "./.local/whow")):
+        util.init()
     try:
         parse_args()        
     except KeyboardInterrupt:

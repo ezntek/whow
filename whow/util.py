@@ -25,8 +25,10 @@ import math
 from dataclasses import dataclass
 from colors import Color, Colors, Styles, get_color_class_from_name
 from config import Config
+from exceptions import *
 
 # class definitions
+
 @dataclass
 class EventDateTime():
     date: datetime.date = datetime.datetime.now().date()
@@ -69,15 +71,6 @@ class EventEntry():
     index: int = 0
 
 # Function Definitions
-def log(text: str, return_string: bool = False) -> None | str:
-    return f"{Styles.bold}{Colors.yellow().colorprint('[>>]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.yellow().colorprint('[>>]', return_string=True)}{Styles.end} {text}")
-
-def error(text: str, return_string: bool = False) -> None | str:
-    return f"{Styles.bold}{Colors.red().colorprint('[!!]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.red().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
-
-def warn(text: str, return_string: bool = False) -> None | str:
-    return f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
-
 def clean_empty_strings_in_list(l: list[str]) -> list[str]:
     for count, element in enumerate(l):
         l.pop(count) if element == "" else None
@@ -96,6 +89,9 @@ def indexify_weekday(weekday: int) -> int:
             return weekday+1
 
 def emoji(emoji: str) -> str | None:
+    """
+    Print out an emoji if `enable_emojis` is set to true on the configuration.
+    """
     if Config().enable_emojis:
         return emoji
 
@@ -136,12 +132,6 @@ def print_center(string: str, width: int, bias_left: bool = True, return_string:
             return f"{' '*int(padding_width/2)}{string}{' '*int(padding_width/2)}"
         print(f"{' '*int(padding_width/2)}{string}{''*int(padding_width/2)}")
 
-def parse_eventdatetime_from_str(string: str) -> EventDateTime:
-    l1 = string.split(" ") # ["d/m/y", "h:m:s"]
-    date_split = l1[0].split("/")
-    time_split = l1[1].split(":")
-    return EventDateTime(datetime.date(int(date_split[2]), int(date_split[1]), int(date_split[0])), datetime.time(int(time_split[0]), int(time_split[1]), int(time_split[2])))
-
 def parse_category_from_name(s: str) -> Category:
     """
     Parse a dictionary that was parsed from a `Category` back into a `Category`.
@@ -157,7 +147,6 @@ def parse_category_from_name(s: str) -> Category:
             )
     raise NameError("The category name was not found! perhaps you did not add it yet?")
 
-    
 def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str, str]]]], file_name: str) -> ToDoEntry:
     """
     Parse a dictionary that was parsed from a `ToDoEntry` into a `ToDoEntry`.
@@ -170,7 +159,7 @@ def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str,
         str(d[file_name]["name"]).replace("_", " "),
         due,
         [parse_category_from_name(c) for c in d[file_name]["categories"]], # type: ignore
-        overdue=True if (type(d[file_name]["overdue"]) == True and d[file_name]["overdue"]) or (datetime.datetime.now().date() > due) else False,
+        overdue=True if (type(d[file_name]["overdue"]) == bool and d[file_name]["overdue"]) or (datetime.datetime.now().date() > due) else False,
         ticked=d[file_name]["ticked"], # type: ignore
         index=d[file_name]["index"] # type: ignore
     )
@@ -182,7 +171,7 @@ def _fill_idx(l: list[int | str]) -> tuple[list[int | str], int]:
     of a for-else clause, which is
     deprecated.
     """
-    retval = []
+    retval: list[int | str] = []
     idx = 0
     found_spot = False
 
@@ -202,6 +191,7 @@ def _fill_idx(l: list[int | str]) -> tuple[list[int | str], int]:
 def pop_indextoml_element(element: int, type: str = "todos") -> None:
     """
     Remove an entry from an index.toml.
+    Valid values for `type: str` include `"todos"` and `"events"`.
     """
 
     if type != "todos" and type != "events":
@@ -233,7 +223,6 @@ def match_todo_index(index: int) -> str:
         if index == data[todo_name]["index"]:
             return filename
     raise IndexError('No file with this to-do index exists! Perhaps the index.toml is corrupted?')
-
 
 def del_todo(index: int) -> str:
     """
@@ -275,6 +264,89 @@ def mark_todo(index: int) -> str:
     register_todo(todo, force=True, quiet=True, use_old_index=True)
     
     return f"Marked to-do: {filename} as {not todo.ticked}\n" 
+
+def unify_date_formats(string: str) -> str:
+    # The time format stays uniform, whereas
+    # there are multiple supported date formats,
+    # such as:
+    #
+    # dd/mm/YYYY
+    # YYYY/mm/dd
+    # MTH dd YYYY (e.g. Jan 09 2069) or MTH dd, YYYY
+    
+    CONVERSION_TABLE = {
+        "jan": 1,
+        "feb": 2,
+        "mar": 3,
+        "apr": 4,
+        "may": 5,
+        "jun": 6,
+        "jul": 7,
+        "aug": 8,
+        "sep": 9,
+        "oct": 10,
+        "nov": 11,
+        "dec": 12
+    }
+
+    whitespace_split_string = string.split(" ")
+    if len(whitespace_split_string) == 3:
+        for k, v in CONVERSION_TABLE.items():
+            if whitespace_split_string[0].lower() == k:
+                return f"{whitespace_split_string[1].replace(',', '')}/{str(v)}/{whitespace_split_string[2]}"
+        return ""
+    if len(whitespace_split_string) == 2:
+        if "," in whitespace_split_string[1]: # "MTH dd,YYYY"
+            tmp = whitespace_split_string[1].split(',') # ["dd", 'YYYY"]
+            try:
+                return f"{tmp[0]}/{CONVERSION_TABLE[whitespace_split_string[0].lower()]}/{tmp[1]}"
+            except KeyError:
+                raise InvalidMonthNameError()
+    del whitespace_split_string
+
+    try:
+        split_string = [int(val) for val in string.split("/")]
+    except ValueError:
+        raise DateFormattingError()
+    if split_string[0] > 99:
+        return f"{split_string[2]}/{split_string[1]}/{split_string[0]}"
+    elif split_string[2] > 99:
+        return string
+
+    raise DateFormattingError()
+
+def parse_argv_event_datetime(string: str) -> EventDateTime:
+    # either:
+    #   "mm/dd/YYYY 6:09:34 PM" | "mm/dd/YYYY 6:09PM"
+    # or:
+    #   "mm/dd/YYYY 18:09:34"
+    #
+    # where seconds can be omitted.
+    
+    twelve_hour_time: bool = True if "PM" or "AM" in string else False
+    afternoon_time: bool = False
+    
+    s1 = clean_empty_strings_in_list(string.split(" ")) # ["mm/dd/YYYY", "6:09", "PM"] or ["mm/dd/YYYY", "6:09PM"]
+    if len(s1) == 3 and s1[-1].lower() == "pm":
+        afternoon_time = True
+        s1.pop(2) # ["mm/dd/YYYY", "6:09"]
+        
+    if len(s1) == 2 and s1[-1][-2:].lower() == "pm":
+        afternoon_time = True
+        s1[-1] = s1[-1][:-2] # ["mm/dd/YYYY", "6:09PM"] -> ["mm/dd/YYYY", "6:09"]
+    
+    # len(s1) should be 2 by now
+
+    date_part_list = unify_date_formats(s1[0]).split("/")
+    time_part_list = s1[1].split(":")
+
+    if twelve_hour_time:
+        time_part_list[0] = str(int(time_part_list[0]) + 12) if afternoon_time else time_part_list[0]
+
+    date_part = datetime.date(int(date_part_list[2]), int(date_part_list[1]), int(date_part_list[0]))
+    time_part = datetime.time(int(time_part_list[0]), int(time_part_list[1]), int(time_part_list[2])) if len(time_part_list) == 3 else datetime.time(int(time_part_list[0]), int(time_part_list[1]), 0)
+
+    return EventDateTime(date_part, time_part)
 
 def register_todo(todo_entry: ToDoEntry, force: bool = False, quiet: bool = False, use_old_index: bool = False) -> str | None:
     """
@@ -359,7 +431,8 @@ def init(destroy: bool = False) -> None:
     dirs = ["./.local/whow",
             "./.local/whow/todos",
             "./.local/whow/categories",
-            "./.local/whow/events"]
+            "./.local/whow/events",
+            "./.config/whow"]
 
     for dir in dirs:
         if not os.path.isdir(os.path.join(os.environ['HOME'], dir)):
@@ -367,7 +440,7 @@ def init(destroy: bool = False) -> None:
 
     indextoml_tmp = toml.dumps(
         {
-            "indexes": []
+            "indexes": [] # type: ignore
         }
     )
 
@@ -379,6 +452,13 @@ def init(destroy: bool = False) -> None:
 
     todos_indextoml.close()
     events_indextoml.close()
+
+    # create the important category and the default config.toml
+    Config().write_cfg()
+
+    # create a new important category
+    register_category(Category("important", Colors.red()), force=True)
+    
 
 def split_string_date(string_date: str) -> datetime.date:
     """
@@ -392,12 +472,20 @@ def split_string_date(string_date: str) -> datetime.date:
     return datetime.date(int(string_date_array[2]), int(string_date_array[1]), int(string_date_array[0]))
 
 def check_category_existence(name: str) -> bool:
+    """
+    Check for the existence of a given category by searching through the category directory.
+    """
     for path in os.listdir(os.path.join(os.environ['HOME'], f"./.local/whow/categories")):
         if (name == os.path.splitext(path)[0]) or (name.lower() == os.path.splitext(path)[0].lower()):
             return True
     return False
 
 def match_name_with_category(name: str) -> Category:
+    """
+    Get a category class, givven the name of an
+    existing category.
+    """
+    
     for path in os.listdir(os.path.join(os.environ['HOME'], f"./.local/whow/categories")):
         if os.path.splitext(path)[0] == name:
             try:
@@ -420,7 +508,7 @@ def match_category_name_with_filename(name: str) -> str:
 
 def register_category(category: Category, force: bool = False) -> str | None:
     """
-    Register a new category
+    Register a new category.
     """
     
     n = category.name.replace(" ", "_")
@@ -439,6 +527,9 @@ def register_category(category: Category, force: bool = False) -> str | None:
 
 
 def del_category(name: str) -> str:
+    """
+    Delete a category by its name.
+    """
     BASEDIR = os.path.join(os.path.join(os.environ['HOME'], f"./.local/whow/categories"))
     try:
         filename = match_category_name_with_filename(name)
@@ -481,7 +572,23 @@ def new_config(destroy: bool = False) -> str:
     
     return f"Dumped toml successfully. \n{c}"
 
-def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = False, use_old_index: bool = False) -> str:
+def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = False) -> str:
+    """
+    Register a new event.  
+
+    `force` is set to False as default, as
+    ```py
+    force=True
+    ```
+    will overwrite any todos with the same name
+    as the current one!
+
+    ```py
+    quiet=True
+    ```
+    will make the function "shut up".
+    """
+
     event_entry.name.replace(" ", "_")
 
     if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/events/{event_entry.name}.toml")):
@@ -490,11 +597,9 @@ def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = F
             return ""
         warn("An event entry with the same name already exists. Overwriting.") if not quiet else None
         
-    event_idx = (0, 0)
-    if not use_old_index:
-        event_idx = _fill_idx(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"))['indexes'])
-        with open(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"), "w") as indextoml:
-            indextoml.write(toml.dumps({"indexes": event_idx[0]}))
+    event_idx = _fill_idx(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"))['indexes'])
+    with open(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"), "w") as indextoml:
+        indextoml.write(toml.dumps({"indexes": event_idx[0]}))
     
     with open(os.path.join(os.environ['HOME'], f"./.local/whow/events/{event_entry.name.replace(' ', '_')}.toml"), "w") as tml:
         event_entry_to = event_entry.event_to if event_entry.event_to is not None else "fullday"
@@ -502,7 +607,7 @@ def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = F
         t = toml.dumps(
             {
                 event_entry.name: {
-                    "index": event_idx[1] if not use_old_index else event_entry.index,
+                    "index": event_idx[1],
                     "name": event_entry.name,
                     "event_from": event_entry.event_from.__repr__(),
                     "event_to": event_entry_to.__repr__() if type(event_entry_to) != str else event_entry_to,
@@ -524,8 +629,8 @@ def parse_evententry_from_dict(d: dict[str, dict[str, str | bool | list[str | in
 
     return EventEntry(
         str(d[file_name]["name"]).replace(" ", "_"),
-        parse_eventdatetime_from_str(str(d[file_name]["event_from"])),
-        parse_eventdatetime_from_str(str(d[file_name]["event_to"])) if d[file_name]["event_to"] != "None" else None,
+        parse_argv_event_datetime(str(d[file_name]["event_from"])),
+        parse_argv_event_datetime(str(d[file_name]["event_to"])) if d[file_name]["event_to"] != "None" else None,
         str(d[file_name]["description"]),
         [parse_category_from_name(c) for c in d[file_name]["categories"]], # type: ignore
         full_day=True if d[file_name]["event_to"] != "None" else False
@@ -570,59 +675,21 @@ def del_event(index: int) -> str:
     return "" 
 
 def parse_category_from_dict(d: dict[str, str]) -> Category:
+    """
+    Parse a category that was parsed from a `Category` into a `Category`.
+    """
     return Category(
         d["name"],
         get_color_class_from_name(d["color"].lower())
     )
 
 def list_categories() -> None:
+    """
+    List all categories.
+    """
+
     for path in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/categories")):
         try:
             print(parse_category_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))))
         except KeyError or TypeError:
             warn(f"The category file {path} in the folder is corrupted!")
-
-def parse_argv_event_datetime(string: str) -> EventDateTime:
-    # either:
-    #   "mm/dd/YYYY 6:09:34 PM" | "mm/dd/YYYY 6:09PM"
-    # or:
-    #   "mm/dd/YYYY 18:09:34"
-    #
-    # where seconds can be omitted.
-    
-    twelve_hour_time: bool = True if "PM" or "AM" in string else False
-    afternoon_time: bool = False
-    
-    s1 = clean_empty_strings_in_list(string.split(" ")) # ["mm/dd/YYYY", "6:09", "PM"] or ["mm/dd/YYYY", "6:09PM"]
-    if len(s1) == 3 and s1[-1].lower() == "pm":
-        afternoon_time = True
-        s1.pop(2) # ["mm/dd/YYYY", "6:09"]
-        
-    if len(s1) == 2 and s1[-1][-2:].lower() == "pm":
-        afternoon_time = True
-        s1[-1] = s1[-1][:-2] # ["mm/dd/YYYY", "6:09PM"] -> ["mm/dd/YYYY", "6:09"]
-    
-    # len(s1) should be 2 by now
-
-    date_part_list = s1[0].split("/")
-    time_part_list = s1[1].split(":")
-
-    if twelve_hour_time:
-        time_part_list[0] = str(int(time_part_list[0]) + 12) if afternoon_time else time_part_list[0]
-
-    date_part = datetime.date(int(date_part_list[2]), int(date_part_list[1]), int(date_part_list[0]))
-    time_part = datetime.time(int(time_part_list[0]), int(time_part_list[1]), int(time_part_list[2])) if len(time_part_list) == 3 else datetime.time(int(time_part_list[0]), int(time_part_list[1]), 0)
-
-    return EventDateTime(date_part, time_part)
-    
-
-# Development code
-def debug_create_todo(name: str) -> ToDoEntry:
-    category1 = Category("category1")
-    category2 = Category("category2")
-    return ToDoEntry(name, None, [category1, category2])
-
-def debug_create_event(name: str) -> EventEntry:
-    c1 = Category("category1")
-    c2 = Category("category2")
-    return EventEntry(name, EventDateTime(), None, "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", [c1, c2], full_day=True)

@@ -19,51 +19,59 @@
 # Imports
 import toml
 import os
-
-import util
+import colors
 
 # Class Definitions
-class Config():
-    def __init__(self) -> None:
-        self.default_separator:  str     = "line"
-        self.enable_emojis:      bool    = True
-        self.time_format:        int     = 12
-        self.sections:           list    = [ "separator", "caldate", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]
 
+class Config():
+    def __init__(self, 
+                default_separator:  str       = "line",
+                seperator_length:   int       = 27,
+                enable_emojis:      bool      = True,
+                time_format:        int       = 12,
+                sections:           list[str] = [ "separator", "caldate", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]) -> None:
+        "Create a new config instance."
+        
+        self.default_separator = default_separator
+        self.seperator_length = seperator_length
+        self.enable_emojis = enable_emojis
+        self.time_format = time_format
+        self.sections = sections
 
         self.CONFPATH = os.path.join(os.environ['HOME'], "./.config/whow/config.toml")
         if os.path.exists(self.CONFPATH):
             self.load_cfg()
-        
-    def load_cfg(self):
+            
+    def load_cfg(self) -> None:
         data = toml.load(self.CONFPATH)
 
-        self.default_separator = data['default_seperator']
-        self.enable_emojis = data['enable_emojis']
-        self.time_format = int(data['time_format'])
-        self.sections = data['sections']
+        self.default_separator = data['config']['default_separator'] if "default_seperator" in data.keys() else self.default_separator
+        self.seperator_length = data['config']['separator_length'] if "separator_length" in data.keys() else self.seperator_length
+        self.enable_emojis = data['config']['enable_emojis'] if "enable_emojis" in data.keys() else self.enable_emojis
+        self.time_format = int(data['config']['time_format']) if "time_format" in data.keys() else self.time_format
+        self.sections = data['config']['sections'] if "sections" in data.keys() else self.sections
+        
 
-    def get_dict(self) -> dict[str, bool | str | int | list[str]]:
+    def get_dict(self) -> dict[str, dict[str, bool | str | int | list[str]]]:
         return {
-            "default_separator": self.default_separator,
-            "enable_emojis": self.enable_emojis,
-            "time_format": self.time_format,
-            "sections": self.sections
+            "config": {
+                "default_separator": self.default_separator,
+                "separator_length": self.seperator_length,
+                "enable_emojis": self.enable_emojis,
+                "time_format": self.time_format,
+                "sections": self.sections
+            }
         }
  
-    def dump_cfg(self) -> None:
-        toml.dump(self.get_dict(), os.path.join(os.environ['HOME'], "./.config/whow/config.toml"))
-    
     def write_cfg(self, force: bool = False, quiet: bool = False) -> None:
         CONFPATH = os.path.join(os.environ['HOME'], "./.config/whow/config.toml")
 
         if os.path.exists(CONFPATH):
             if not force:
-                util.warn("Configuration already exists. Aborting.") if not quiet else None
+                print(f"{colors.Styles.bold}{colors.Colors.magenta().colorprint('[!!]')}{colors.Styles.end}Configuration already exists. Aborting.") if not quiet else None
                 return
-            util.warn("Configuration already exists. Overwriting.") if not quiet else None
-
-        toml.dump(self.get_dict(), CONFPATH)
+            print(f"{colors.Styles.bold}{colors.Colors.magenta().colorprint('[!!]')}{colors.Styles.end}Configuration already exists. Overwriting.") if not quiet else None
+        toml.dump(self.get_dict(), CONFPATH) # type: ignore
 
 
 # Function Definitions

@@ -1,5 +1,6 @@
 [config]
-default_seperator = "line"
+default_separator = "line"
+seperator_length = 27
 enable_emojis = true
 time_format = 12
-sections = [ "separator", "caldate", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]
+sections = [ "separator", "date", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]

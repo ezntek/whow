@@ -25,18 +25,19 @@ import os
 
 # other imports
 import util
+from config import Config
 from dataclasses import dataclass
 
-def clear_none(l: list) -> list:
-    for count, element in enumerate(l):
+def clear_none(l: list) -> list: # type: ignore
+    for count, element in enumerate(l): # type: ignore
         l.pop(count) if element is None else None
-    return l
+    return l # type: ignore
 
 class ScheduleComponent():
     pass
 
 class EventsComponent():
-    def __init__(self) -> None:
+    def __init__(self, cfg: Config) -> None:
         self.events: list[util.EventEntry] = []
         self.load_events()
     
@@ -64,7 +65,7 @@ class EventsComponent():
         return retval
 
 class ToDoComponent():
-    def __init__(self) -> None:
+    def __init__(self, cfg: Config) -> None:
         self.todos: list[util.ToDoEntry] = []
         self.important_todos: list[util.ToDoEntry] = []
         self.load_todos()
@@ -73,7 +74,8 @@ class ToDoComponent():
     def load_todos(self) -> None:
         for filename in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/todos/")):
             if filename != "index.toml":
-                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " "))
+                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " ")) # type: ignore
+
                     if util.parse_category_from_name("! important") in todo.categories:
                         self.important_todos.append(todo)
                     else:
@@ -95,7 +97,7 @@ class ImportantComponent():
     pass
 
 class DateDisplay():
-    def __init__(self) -> None:
+    def __init__(self, cfg: Config) -> None:
         # set up the base variable
         self.date_time_now = datetime.datetime.now()
 
@@ -113,11 +115,11 @@ class Separator():
     Available Modes: line, equals or tilde
     """
 
-    mode: str = "line" # line, equals or tilde
+    cfg: Config
     length: int = 27
 
     def __repr__(self) -> str:
-        match self.mode:
+        match self.cfg.default_separator:
             case "line":
                 return "-"*self.length
             case "equals":
@@ -137,7 +139,7 @@ class CalDate:
         return f"{self.bg}{self.date}{Styles.end}"
 
 class Calendar():
-    def __init__(self) -> None:
+    def __init__(self, cfg: Config) -> None:
         datetime_now = datetime.datetime.now().date()
         monthrange = calendar.monthrange(int(datetime_now.strftime("%Y")), int(datetime_now.strftime("%m")))
         
@@ -186,3 +188,33 @@ class Calendar():
                     retval += f" {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg} {x.__repr__()}" # 1 on either side
             retval += "\n"
         return retval
+
+# Function definitions
+def match_name_with_component(name: str, config: Config) -> (  DateDisplay          | EventsComponent
+                                                             | ImportantComponent   | ToDoComponent
+                                                             | ScheduleComponent    | Separator
+                                                             | Calendar):
+    """
+    Return a component class based on its name (str).
+    """
+    match name.lower():
+        case "separator":
+            return Separator(config)
+        case "calendar":
+            return Calendar(config)
+        case "date":
+            return DateDisplay(config)
+        case "events":
+            return EventsComponent(config)
+        case "todos":
+            return ToDoComponent(config)
+        case "schedule":
+            return ScheduleComponent()
+        case _:
+            raise NameError(f"Section \"{name}\" not found!")
+    
+def build_component_list(config: Config) -> list[DateDisplay | EventsComponent | ImportantComponent | ToDoComponent | ScheduleComponent | Separator | Calendar]:
+    """
+    Return a list of components based on user's configuration.
+    """
+    return [match_name_with_component(s, config) for s in Config().sections]
