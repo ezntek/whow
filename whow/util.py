@@ -24,6 +24,7 @@ import math
 
 from dataclasses import dataclass
 from colors import Color, Colors, Styles, get_color_class_from_name
+from config import Config
 
 # class definitions
 @dataclass
@@ -94,6 +95,10 @@ def indexify_weekday(weekday: int) -> int:
         case _:
             return weekday+1
 
+def emoji(emoji: str) -> str | None:
+    if Config().enable_emojis:
+        return emoji
+
 def fprint(string: str, padding: int = 1, flowtext: bool = True) -> str:
     """
     Return a string, omitting overflowed text based
@@ -131,7 +136,7 @@ def print_center(string: str, width: int, bias_left: bool = True, return_string:
             return f"{' '*int(padding_width/2)}{string}{' '*int(padding_width/2)}"
         print(f"{' '*int(padding_width/2)}{string}{''*int(padding_width/2)}")
 
-def get_eventdatetime_from_str(string: str) -> EventDateTime:
+def parse_eventdatetime_from_str(string: str) -> EventDateTime:
     l1 = string.split(" ") # ["d/m/y", "h:m:s"]
     date_split = l1[0].split("/")
     time_split = l1[1].split(":")
@@ -341,7 +346,7 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False, quiet: bool = Fals
 
     return f"Registered New To-Do: \n{t}"
 
-def init_todos(destroy: bool = False) -> None:
+def init(destroy: bool = False) -> None:
     """
     Create the necessary paths for the To-Dos and Events.
     """
@@ -487,18 +492,12 @@ def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = F
         
     event_idx = (0, 0)
     if not use_old_index:
-        # load used indexes
-        idx: list[str | int] = toml.load(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"))['indexes']
-        event_idx = _fill_idx(idx)
-
-        # write the new index.toml
+        event_idx = _fill_idx(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"))['indexes'])
         with open(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"), "w") as indextoml:
-            toml.dumps({
-                "indexes": event_idx[0]
-            })
+            indextoml.write(toml.dumps({"indexes": event_idx[0]}))
     
     with open(os.path.join(os.environ['HOME'], f"./.local/whow/events/{event_entry.name.replace(' ', '_')}.toml"), "w") as tml:
-        event_entry_to = event_entry.event_to if event_entry.event_to is not None else EventDateTime()
+        event_entry_to = event_entry.event_to if event_entry.event_to is not None else "fullday"
 
         t = toml.dumps(
             {
@@ -506,7 +505,7 @@ def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = F
                     "index": event_idx[1] if not use_old_index else event_entry.index,
                     "name": event_entry.name,
                     "event_from": event_entry.event_from.__repr__(),
-                    "event_to": event_entry_to.__repr__(),
+                    "event_to": event_entry_to.__repr__() if type(event_entry_to) != str else event_entry_to,
                     "description": event_entry.description,
                     "full_day": event_entry.full_day,
                     "categories": [c.name for c in event_entry.categories],
@@ -525,8 +524,8 @@ def parse_evententry_from_dict(d: dict[str, dict[str, str | bool | list[str | in
 
     return EventEntry(
         str(d[file_name]["name"]).replace(" ", "_"),
-        get_eventdatetime_from_str(str(d[file_name]["event_from"])),
-        get_eventdatetime_from_str(str(d[file_name]["event_to"])) if d[file_name]["event_to"] != "None" else None,
+        parse_eventdatetime_from_str(str(d[file_name]["event_from"])),
+        parse_eventdatetime_from_str(str(d[file_name]["event_to"])) if d[file_name]["event_to"] != "None" else None,
         str(d[file_name]["description"]),
         [parse_category_from_name(c) for c in d[file_name]["categories"]], # type: ignore
         full_day=True if d[file_name]["event_to"] != "None" else False
@@ -570,7 +569,7 @@ def del_event(index: int) -> str:
         return f"deleted event: {event_name}"
     return "" 
 
-def get_category_from_dict(d: dict[str, str]) -> Category:
+def parse_category_from_dict(d: dict[str, str]) -> Category:
     return Category(
         d["name"],
         get_color_class_from_name(d["color"].lower())
@@ -579,7 +578,7 @@ def get_category_from_dict(d: dict[str, str]) -> Category:
 def list_categories() -> None:
     for path in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/categories")):
         try:
-            print(get_category_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))))
+            print(parse_category_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))))
         except KeyError or TypeError:
             warn(f"The category file {path} in the folder is corrupted!")
 
@@ -595,11 +594,11 @@ def parse_argv_event_datetime(string: str) -> EventDateTime:
     afternoon_time: bool = False
     
     s1 = clean_empty_strings_in_list(string.split(" ")) # ["mm/dd/YYYY", "6:09", "PM"] or ["mm/dd/YYYY", "6:09PM"]
-    if len(s1) == 3 and s1[-1].lower() == "PM":
+    if len(s1) == 3 and s1[-1].lower() == "pm":
         afternoon_time = True
         s1.pop(2) # ["mm/dd/YYYY", "6:09"]
         
-    if len(s1) == 2 and s1[-1][-2:].lower() == "PM":
+    if len(s1) == 2 and s1[-1][-2:].lower() == "pm":
         afternoon_time = True
         s1[-1] = s1[-1][:-2] # ["mm/dd/YYYY", "6:09PM"] -> ["mm/dd/YYYY", "6:09"]
     

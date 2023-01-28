@@ -74,7 +74,7 @@ class ToDoComponent():
         for filename in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/todos/")):
             if filename != "index.toml":
                     todo = util.parse_todoentry_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " "))
-                    if util.parse_category_from_name("! important") in util.parse_todoentry_from_dict(t).categories:
+                    if util.parse_category_from_name("! important") in todo.categories:
                         self.important_todos.append(todo)
                     else:
                         self.todos.append(todo)
@@ -104,7 +104,7 @@ class DateDisplay():
         self.time = self.date_time_now.strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue.bg}📅 {self.date}{Styles.end} {Styles.bold}{Colors.magenta.bg}🕓 {self.time}{Styles.end}"
+        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue.bg}{util.emoji('📅')} {self.date}{Styles.end} {Styles.bold}{Colors.magenta.bg}{util.emoji('🕓')} {self.time}{Styles.end}"
 
 @dataclass
 class Separator():

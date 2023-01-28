@@ -22,6 +22,6 @@ Commands:
         list                                                    List all categories that exists.
 
     event <subcommand>
-        add <start> [fullday|<end>] <name> [desc] [@categories] Add an event. Use "fullday" instead of an end date-time to create
+        add <name> <start> [fullday|<end>] [desc] [@categories] Add an event. Use "fullday" instead of an end date-time to create
                                                                 a full-day event, where the starting date-time will be used as the day.
         del <index>                                             Delete an event by index.
