@@ -27,6 +27,11 @@ import os
 import util
 from dataclasses import dataclass
 
+def clear_none(l: list) -> list:
+    for count, element in enumerate(l):
+        l.pop(count) if element is None else None
+    return l
+
 class ScheduleComponent():
     pass
 
@@ -36,27 +41,43 @@ class EventsComponent():
         self.load_events()
     
     def load_events(self) -> None:
-        BASEDIR = os.path.join(os.environ['HOME'], "./.local/whow/events/")
-        for filename in os.listdir(BASEDIR):
-            self.events.append(
-                util.parse_evententry_from_dict(toml.load(os.path.join(BASEDIR, filename)),
-                filename)
-            ) if filename != "index.toml" else None
-    
+        for filename in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/events/")):
+            if filename != "index.toml":
+                with open(os.path.join(os.environ['HOME'], "./.local/whow/events", filename), "r") as t:
+                    self.events.append(util.parse_evententry_from_dict(toml.loads(t.read()), os.path.splitext(filename)[0].replace("_", " ")))
+
+    def datedisplay(self, event: util.EventEntry) -> str:
+        return f"{Colors.white()} {event.event_from.__repr__()} {Styles.end}"
+        
     def __repr__(self) -> str:
         retval: str = ""
         retval += f"{Styles.bold}Events{Styles.end}"
+
+        categories_string: str = ""
+
+        for event in self.events:
+            retval += self.datedisplay(event)
+            for category in event.categories:
+                categories_string += f"{category.__repr__()} "
+            retval += util.fprint(f"{Styles.bold}#{event.index} {self.datedisplay(event)} {categories_string}")
+
         return retval
+
 class ToDoComponent():
     def __init__(self) -> None:
         self.todos: list[util.ToDoEntry] = []
+        self.important_todos: list[util.ToDoEntry] = []
         self.load_todos()
+        self.show_important: bool = False
 
     def load_todos(self) -> None:
         for filename in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/todos/")):
             if filename != "index.toml":
-                with open(os.path.join(os.environ['HOME'], "./.local/whow/todos", filename), "r") as t:
-                    self.todos.append(util.parse_todoentry_from_dict(toml.loads(t.read()), os.path.splitext(filename)[0]))
+                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " "))
+                    if util.parse_category_from_name("! important") in util.parse_todoentry_from_dict(t).categories:
+                        self.important_todos.append(todo)
+                    else:
+                        self.todos.append(todo)
 
     def __repr__(self) -> str:
         retval: str = ""
@@ -67,8 +88,11 @@ class ToDoComponent():
         for todo in self.todos:
             for category in todo.categories:
                 categories_string += f"{category.__repr__()} "
-            retval += f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n"
+            retval += util.fprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n")
         return retval
+
+class ImportantComponent():
+    pass
 
 class DateDisplay():
     def __init__(self) -> None:

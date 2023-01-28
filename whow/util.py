@@ -94,9 +94,9 @@ def indexify_weekday(weekday: int) -> int:
         case _:
             return weekday+1
 
-def fprint(string: str, padding: int = 1, flowtext: bool = True) -> None:
+def fprint(string: str, padding: int = 1, flowtext: bool = True) -> str:
     """
-    Print out a string, omitting overflowed text based
+    Return a string, omitting overflowed text based
     on the terminal width.
     """
 
@@ -104,7 +104,7 @@ def fprint(string: str, padding: int = 1, flowtext: bool = True) -> None:
     overflow = '…' if flowtext and (len(string) + padding) > term_width else ''
     text_padding: str = " "*padding
 
-    print(f"{text_padding}{string[0:term_width]}{overflow}")
+    return(f"{text_padding}{string[0:term_width]}{overflow}")
 
 def print_center(string: str, width: int, bias_left: bool = True, return_string: bool = False) -> None | str:
     """
@@ -243,7 +243,7 @@ def del_todo(index: int) -> str:
         
     BASEDIR = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
     todo_name = os.path.splitext(filename.replace("_", " "))[0]
-    todo = parse_todoentry_from_dict(toml.load(os.path.join(BASEDIR, filename)), os.path.splitext(filename)[0])
+    todo = parse_todoentry_from_dict(toml.load(os.path.join(BASEDIR, filename)), os.path.splitext(filename)[0].replace("_", " "))
     
     if index == todo.index:
         os.remove(os.path.join(BASEDIR, filename))
@@ -517,19 +517,19 @@ def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = F
     
     return f"Registered New Event: \n{t}"
 
-def parse_evententry_from_dict(d: dict[str, dict[str, str | bool | list[str | int]]], filename: str) -> EventEntry:
+def parse_evententry_from_dict(d: dict[str, dict[str, str | bool | list[str | int]]], file_name: str) -> EventEntry:
     """
     Parse a dictionary that was parsed from an `EventEntry` into an `EventEntry`.
     `file_name` should be the name of the file WITHOUT the extension
     """
 
     return EventEntry(
-        str(d[filename]["name"]).replace("_", " "),
-        get_eventdatetime_from_str(str(d[filename]["from"])),
-        get_eventdatetime_from_str(str(d[filename]["to"])) if d[filename]["to"] != "None" else None,
-        str(d[filename]["description"]),
-        [parse_category_from_name(c) for c in d[filename]["categories"]], # type: ignore
-        full_day=True if d[filename]["to"] != "None" else False
+        str(d[file_name]["name"]).replace(" ", "_"),
+        get_eventdatetime_from_str(str(d[file_name]["event_from"])),
+        get_eventdatetime_from_str(str(d[file_name]["event_to"])) if d[file_name]["event_to"] != "None" else None,
+        str(d[file_name]["description"]),
+        [parse_category_from_name(c) for c in d[file_name]["categories"]], # type: ignore
+        full_day=True if d[file_name]["event_to"] != "None" else False
     )
 
 def match_event_index(index: int) -> str:
@@ -557,12 +557,12 @@ def del_event(index: int) -> str:
     try:
         filename = match_event_index(index)
     except IndexError:
-        error("A to-do with this index does not exist! Please re-evaluate your input, or perhaps the index.toml is corrupted?")
+        error("An event with this index does not exist! Please re-evaluate your input, or perhaps the index.toml is corrupted?")
         return ""
     
     BASEDIR = os.path.join(os.environ['HOME'], f"./.local/whow/events")
     event_name = os.path.splitext(filename.replace("_", " "))[0]
-    event = parse_evententry_from_dict(toml.load(os.path.join(BASEDIR, filename)), filename)
+    event = parse_evententry_from_dict(toml.load(os.path.join(BASEDIR, filename)), os.path.splitext(filename)[0].replace("_", " "))
 
     if index == event.index:
         os.remove(os.path.join(BASEDIR, filename))
