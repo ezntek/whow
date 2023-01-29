@@ -424,13 +424,13 @@ def init(destroy: bool = False) -> None:
     """
 
     if destroy:
-        warn("Overwriting ~/.local/whow...")
+        warn("Overwriting {Config().cache_path}...")
         shutil.rmtree(os.path.join(os.environ['HOME'], './.local/whow'))
 
     # create dirs
-    dirs = ["./.local/whow",
-            "./.local/whow/todos",
-            "./.local/whow/categories",
+    dirs = [Config().cache_path
+            f"{Config().cache_path}/todos",
+            f"./.local/whow/categories",
             "./.local/whow/events",
             "./.config/whow"]
 
@@ -454,10 +454,10 @@ def init(destroy: bool = False) -> None:
     events_indextoml.close()
 
     # create the important category and the default config.toml
-    Config().write_cfg()
+    Config().write_cfg(quiet=True)
 
     # create a new important category
-    register_category(Category("important", Colors.red()), force=True)
+    register_category(Category("important", Colors.red()), quiet=True)
     
 
 def split_string_date(string_date: str) -> datetime.date:
@@ -506,7 +506,7 @@ def match_category_name_with_filename(name: str) -> str:
 
     raise NameError("No category found with name!")
 
-def register_category(category: Category, force: bool = False) -> str | None:
+def register_category(category: Category, force: bool = False, quiet = False) -> str | None:
     """
     Register a new category.
     """
@@ -515,15 +515,15 @@ def register_category(category: Category, force: bool = False) -> str | None:
 
     if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/categories/{n}.toml")):
         if not force:
-            warn("A category entry with the same name exists. Aborting...")
+            warn("A category entry with the same name exists. Aborting...") if not quiet else None
             return
-        warn("A category entry with the same name already exists. Overwriting...")
+        warn("A category entry with the same name already exists. Overwriting...") if not quiet else None
 
     with open(os.path.join(os.environ['HOME'], f'./.local/whow/categories/{n}.toml'), "w+") as categorytoml:
         t = toml.dumps(category.get_dictionary())
         categorytoml.write(t)
 
-    return f"Wrote a new category toml. \n{t}"
+    return f"Wrote a new category toml. \n{t}" if not quiet else None
 
 
 def del_category(name: str) -> str:

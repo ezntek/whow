@@ -3,4 +3,5 @@ default_separator = "line"
 seperator_length = 27
 enable_emojis = true
 time_format = 12
-sections = [ "separator", "date", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]
+cachepath = "{HOME}/.local/whow/"
+sections = [ "separator", "datetime", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]

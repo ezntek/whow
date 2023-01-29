@@ -42,6 +42,9 @@ def print_help() -> None:
         print(helptxt.read())
 
 def parse_args() -> None:
+    if len(sys.argv) <= 1:
+        show("all")
+
     # do some sys.argv parsing here
     match sys.argv[1]: # slicing magic
         case "-h":
@@ -216,14 +219,22 @@ def parse_args() -> None:
                 case _:
                     print_help()
 
-        case _: # default option (no arguments)
-            show()
+        case "show":
+            show(sys.argv[2])
+        
+        case _:
+            print_help()
 
-def show() -> None:
-    sections = cmp.build_component_list(Config())
+def show(section: str = "all") -> None:
+    match section:
+        case "all":
+            sections = cmp.build_component_list(Config())
 
-    for section in sections:
-        print(section.__repr__())
+            for section in sections:
+                print(section.__repr__())
+        case _:
+            cmp.match_name_with_component(section).__repr__()
+
 
 # Main Function
 def main() -> None:

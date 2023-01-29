@@ -34,10 +34,14 @@ def clear_none(l: list) -> list: # type: ignore
     return l # type: ignore
 
 class ScheduleComponent():
-    pass
+    def __init__(self, cfg: Config = Config()) -> None:
+        pass
+
+    def __repr__(self) -> str:
+        return("pretend this is schedule")
 
 class EventsComponent():
-    def __init__(self, cfg: Config) -> None:
+    def __init__(self, cfg: Config = Config()) -> None:
         self.events: list[util.EventEntry] = []
         self.load_events()
     
@@ -65,7 +69,7 @@ class EventsComponent():
         return retval
 
 class ToDoComponent():
-    def __init__(self, cfg: Config) -> None:
+    def __init__(self, cfg: Config = Config()) -> None:
         self.todos: list[util.ToDoEntry] = []
         self.important_todos: list[util.ToDoEntry] = []
         self.load_todos()
@@ -97,7 +101,7 @@ class ImportantComponent():
     pass
 
 class DateDisplay():
-    def __init__(self, cfg: Config) -> None:
+    def __init__(self, cfg: Config = Config()) -> None:
         # set up the base variable
         self.date_time_now = datetime.datetime.now()
 
@@ -139,7 +143,7 @@ class CalDate:
         return f"{self.bg}{self.date}{Styles.end}"
 
 class Calendar():
-    def __init__(self, cfg: Config) -> None:
+    def __init__(self, cfg: Config = Config()) -> None:
         datetime_now = datetime.datetime.now().date()
         monthrange = calendar.monthrange(int(datetime_now.strftime("%Y")), int(datetime_now.strftime("%m")))
         
@@ -190,7 +194,7 @@ class Calendar():
         return retval
 
 # Function definitions
-def match_name_with_component(name: str, config: Config) -> (  DateDisplay          | EventsComponent
+def match_name_with_component(name: str, config: Config = Config()) -> (  DateDisplay          | EventsComponent
                                                              | ImportantComponent   | ToDoComponent
                                                              | ScheduleComponent    | Separator
                                                              | Calendar):
@@ -202,18 +206,20 @@ def match_name_with_component(name: str, config: Config) -> (  DateDisplay      
             return Separator(config)
         case "calendar":
             return Calendar(config)
-        case "date":
+        case "datetime":
             return DateDisplay(config)
         case "events":
             return EventsComponent(config)
         case "todos":
             return ToDoComponent(config)
         case "schedule":
-            return ScheduleComponent()
+            return ScheduleComponent(config)
+        case "important":
+            return ImportantComponent()
         case _:
             raise NameError(f"Section \"{name}\" not found!")
     
-def build_component_list(config: Config) -> list[DateDisplay | EventsComponent | ImportantComponent | ToDoComponent | ScheduleComponent | Separator | Calendar]:
+def build_component_list(config: Config = Config()) -> list[DateDisplay | EventsComponent | ImportantComponent | ToDoComponent | ScheduleComponent | Separator | Calendar]:
     """
     Return a list of components based on user's configuration.
     """
