@@ -137,7 +137,7 @@ def parse_category_from_name(s: str) -> Category:
     Parse a dictionary that was parsed from a `Category` back into a `Category`.
     """
 
-    BASEDIR = os.path.join(os.environ['HOME'], "./.local/whow/categories")
+    BASEDIR = os.path.join(Config().config_tree_dir, "categories")
     for category_filename in os.listdir(BASEDIR):
         c = toml.load(os.path.join(BASEDIR, category_filename))
         if c["name"] == s:
@@ -197,13 +197,13 @@ def pop_indextoml_element(element: int, type: str = "todos") -> None:
     if type != "todos" and type != "events":
         type = "todos"
     
-    with open(os.path.join(os.environ['HOME'], f"./.local/whow/{type}/index.toml"), "r") as index_toml:
+    with open(os.path.join(Config().config_tree_dir, f"index.toml"), "r") as index_toml:
         indexes: list[int | str] = toml.loads(index_toml.read())['indexes']
         for count, idx in enumerate(indexes):
             if idx == element:
                 indexes[count] = "None"
     
-    with open(os.path.join(os.environ['HOME'], f"./.local/whow/{type}/index.toml"), "w") as index_toml:
+    with open(os.path.join(Config().config_tree_dir, f"index.toml"), "w") as index_toml:
         index_toml.write(toml.dumps({
             "indexes": indexes
         }))
@@ -213,7 +213,7 @@ def match_todo_index(index: int) -> str:
     Find a to-do filename based on its index.
     """
 
-    BASEDIR = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
+    BASEDIR = os.path.join((Config().config_tree_dir), f"todos")
     for filename in os.listdir(BASEDIR):
         if filename == "index.toml":
             continue
@@ -235,7 +235,7 @@ def del_todo(index: int) -> str:
         error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
         return ""
         
-    BASEDIR = os.path.join((os.environ["HOME"]), f'./.local/whow/todos/')
+    BASEDIR = os.path.join((Config().config_tree_dir), f"todos")
     todo_name = os.path.splitext(filename.replace("_", " "))[0]
     todo = parse_todoentry_from_dict(toml.load(os.path.join(BASEDIR, filename)), os.path.splitext(filename)[0].replace("_", " "))
     
@@ -256,7 +256,7 @@ def mark_todo(index: int) -> str:
         error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
         return ""
 
-    data = toml.load(os.path.join((os.environ["HOME"]), f'./.local/whow/todos/', filename))
+    data = toml.load(os.path.join((Config().config_tree_dir), f'todos', filename))
     todo_name = os.path.splitext(filename.replace("_", " "))[0]
     todo = parse_todoentry_from_dict(data, todo_name)
     
@@ -375,7 +375,7 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False, quiet: bool = Fals
     todo_entry.name.replace(" ", "_")
 
     # guard clause
-    if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/todos/{todo_entry.name}.toml")):
+    if os.path.exists(os.path.join(Config().config_tree_dir, f"{todo_entry.name}.toml")):
         if not force:
             warn("A to-do entry with the same name exists. Aborting.") if not quiet else None
             return
@@ -384,19 +384,19 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False, quiet: bool = Fals
     todo_idx = (0, 0)
     if not use_old_index:
         # load the used indexes
-        with open(os.path.join(os.environ['HOME'], "./.local/whow/todos/index.toml")) as indexes:
+        with open(os.path.join(Config().config_tree_dir, "index.toml")) as indexes:
             idx: list[int | str] = toml.loads(indexes.read())['indexes']
         
         todo_idx = _fill_idx(idx)
 
         # write new index.toml
-        with open(os.path.join(os.environ['HOME'], "./.local/whow/todos/index.toml"), "w") as indextoml:
+        with open(os.path.join(Config().config_tree_dir, "index.toml"), "w") as indextoml:
             indextoml.write(toml.dumps({
                 "indexes": todo_idx[0]
             }))
 
     # write the todo toml file
-    with open(os.path.join(os.environ['HOME'], f'./.local/whow/todos/{todo_entry.name.replace(" ", "_")}.toml'), "w+") as tml:
+    with open(os.path.join(Config().config_tree_dir, f'todos/{todo_entry.name.replace(" ", "_")}.toml'), "w+") as tml:
         # unwrap the optional
         todo_entry_due = todo_entry.due if todo_entry.due is not None else datetime.datetime.now().date()
         
@@ -424,19 +424,29 @@ def init(destroy: bool = False) -> None:
     """
 
     if destroy:
-        warn("Overwriting {Config().cache_path}...")
-        shutil.rmtree(os.path.join(os.environ['HOME'], './.local/whow'))
+        warn(f"Overwriting {Config().config_tree_dir}...")
+        shutil.rmtree(Config().config_tree_dir)
 
     # create dirs
-    dirs = [Config().cache_path
-            f"{Config().cache_path}/todos",
-            f"./.local/whow/categories",
-            "./.local/whow/events",
-            "./.config/whow"]
+    dirs = [
+        Config().cache_path,
+        os.path.join(os.environ['HOME'], "./.config/whow")
+    ]
+
+    tree_dirs = [
+            "todos",
+            "categories",
+            "events",
+    ]
 
     for dir in dirs:
-        if not os.path.isdir(os.path.join(os.environ['HOME'], dir)):
+        if not os.path.isdir(dir):
+            os.mkdir(dir)
+
+    for dir in tree_dirs:
+        if not os.path.isdir(os.path.join(Config().cache_path, dir)):
             os.mkdir(os.path.join(os.environ['HOME'], dir))
+    
 
     indextoml_tmp = toml.dumps(
         {
@@ -445,8 +455,8 @@ def init(destroy: bool = False) -> None:
     )
 
     # write the index.toml's
-    todos_indextoml = open(os.path.join(os.environ['HOME'], './.local/whow/todos/index.toml'), "w+")
-    events_indextoml = open(os.path.join(os.environ['HOME'], './.local/whow/events/index.toml'), "w+") 
+    todos_indextoml = open(os.path.join(Config().config_tree_dir, 'index.toml'), "w+")
+    events_indextoml = open(os.path.join(Config().config_tree_dir, 'index.toml'), "w+") 
     todos_indextoml.write(indextoml_tmp)
     events_indextoml.write(indextoml_tmp)
 
@@ -475,7 +485,7 @@ def check_category_existence(name: str) -> bool:
     """
     Check for the existence of a given category by searching through the category directory.
     """
-    for path in os.listdir(os.path.join(os.environ['HOME'], f"./.local/whow/categories")):
+    for path in os.listdir(os.path.join(Config().config_tree_dir, f"categories")):
         if (name == os.path.splitext(path)[0]) or (name.lower() == os.path.splitext(path)[0].lower()):
             return True
     return False
@@ -486,10 +496,10 @@ def match_name_with_category(name: str) -> Category:
     existing category.
     """
     
-    for path in os.listdir(os.path.join(os.environ['HOME'], f"./.local/whow/categories")):
+    for path in os.listdir(os.path.join(Config().config_tree_dir, f"categories")):
         if os.path.splitext(path)[0] == name:
             try:
-                return parse_category_from_name(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))['name'])
+                return parse_category_from_name(toml.load(os.path.join(Config().config_tree_dir, "categories", path))['name'])
             except NameError:
                 break
     raise NameError("The category name was not found! Perhaps you did not add it yet?")
@@ -500,7 +510,7 @@ def match_category_name_with_filename(name: str) -> str:
     """
     name = name.replace(" ", "_").lower()
 
-    for n in os.listdir(os.path.join(os.environ['HOME'], f"./.local/whow/categories")):
+    for n in os.listdir(os.path.join(Config().config_tree_dir, f"categories")):
         if n == f"{name}.toml":
             return(n)
 
@@ -513,13 +523,13 @@ def register_category(category: Category, force: bool = False, quiet = False) ->
     
     n = category.name.replace(" ", "_")
 
-    if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/categories/{n}.toml")):
+    if os.path.exists(os.path.join(Config().config_tree_dir, f"{n}.toml")):
         if not force:
             warn("A category entry with the same name exists. Aborting...") if not quiet else None
             return
         warn("A category entry with the same name already exists. Overwriting...") if not quiet else None
 
-    with open(os.path.join(os.environ['HOME'], f'./.local/whow/categories/{n}.toml'), "w+") as categorytoml:
+    with open(os.path.join(Config().config_tree_dir, f'{n}.toml'), "w+") as categorytoml:
         t = toml.dumps(category.get_dictionary())
         categorytoml.write(t)
 
@@ -530,7 +540,7 @@ def del_category(name: str) -> str:
     """
     Delete a category by its name.
     """
-    BASEDIR = os.path.join(os.path.join(os.environ['HOME'], f"./.local/whow/categories"))
+    BASEDIR = os.path.join(os.path.join(Config().config_tree_dir, f"categories"))
     try:
         filename = match_category_name_with_filename(name)
         os.remove(os.path.join(BASEDIR, filename))
@@ -591,17 +601,17 @@ def register_event(event_entry: EventEntry, force: bool = False, quiet: bool = F
 
     event_entry.name.replace(" ", "_")
 
-    if os.path.exists(os.path.join(os.environ['HOME'], f"./.local/whow/events/{event_entry.name}.toml")):
+    if os.path.exists(os.path.join(Config().config_tree_dir, f"{event_entry.name}.toml")):
         if not force:
             warn("An event entry with the same name exists, aborting.") if not quiet else None
             return ""
         warn("An event entry with the same name already exists. Overwriting.") if not quiet else None
         
-    event_idx = _fill_idx(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"))['indexes'])
-    with open(os.path.join(os.environ['HOME'], "./.local/whow/events/index.toml"), "w") as indextoml:
+    event_idx = _fill_idx(toml.load(os.path.join(Config().config_tree_dir, "index.toml"))['indexes'])
+    with open(os.path.join(Config().config_tree_dir, "index.toml"), "w") as indextoml:
         indextoml.write(toml.dumps({"indexes": event_idx[0]}))
     
-    with open(os.path.join(os.environ['HOME'], f"./.local/whow/events/{event_entry.name.replace(' ', '_')}.toml"), "w") as tml:
+    with open(os.path.join(Config().config_tree_dir, f"{event_entry.name.replace(' ', '_')}.toml"), "w") as tml:
         event_entry_to = event_entry.event_to if event_entry.event_to is not None else "fullday"
 
         t = toml.dumps(
@@ -641,7 +651,7 @@ def match_event_index(index: int) -> str:
     Find an event filename based on its index.
     """
 
-    BASEDIR = os.path.join(os.environ['HOME'], f"./.local/whow/events")
+    BASEDIR = os.path.join(Config().config_tree_dir, f"events")
 
     for filename in os.listdir(BASEDIR):
         if filename == "index.toml":
@@ -664,7 +674,7 @@ def del_event(index: int) -> str:
         error("An event with this index does not exist! Please re-evaluate your input, or perhaps the index.toml is corrupted?")
         return ""
     
-    BASEDIR = os.path.join(os.environ['HOME'], f"./.local/whow/events")
+    BASEDIR = os.path.join(Config().config_tree_dir, f"events")
     event_name = os.path.splitext(filename.replace("_", " "))[0]
     event = parse_evententry_from_dict(toml.load(os.path.join(BASEDIR, filename)), os.path.splitext(filename)[0].replace("_", " "))
 
@@ -688,8 +698,8 @@ def list_categories() -> None:
     List all categories.
     """
 
-    for path in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/categories")):
+    for path in os.listdir(os.path.join(Config().config_tree_dir, "categories")):
         try:
-            print(parse_category_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/categories", path))))
+            print(parse_category_from_dict(toml.load(os.path.join(Config().config_tree_dir, "categories", path))))
         except KeyError or TypeError:
             warn(f"The category file {path} in the folder is corrupted!")

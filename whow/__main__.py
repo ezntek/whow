@@ -159,11 +159,11 @@ def parse_args() -> None:
                 case "clean":
                     match input(f"{util.warn('This is a highly destructive action, are you sure? (y/n) ', return_string=True)}").lower():
                         case "yes":
-                            shutil.rmtree(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
-                            os.mkdir(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
+                            shutil.rmtree(os.path.join(Config().config_tree_dir, "categories"))
+                            os.mkdir(os.path.join(Config().config_tree_dir, "categories"))
                         case "y":
-                            shutil.rmtree(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
-                            os.mkdir(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
+                            shutil.rmtree(os.path.join(Config().config_tree_dir, "categories"))
+                            os.mkdir(os.path.join(Config().config_tree_dir, "categories"))
                         case _:
                             util.log("aborting...")
                             
@@ -238,7 +238,7 @@ def show(section: str = "all") -> None:
 
 # Main Function
 def main() -> None:
-    if not os.path.isdir(os.path.join(os.environ['HOME'], "./.config/whow")) or os.path.isdir(os.path.join(os.environ['HOME'], "./.local/whow")):
+    if not os.path.isdir(os.path.join(os.environ['HOME'], "./.config/whow")) or os.path.isdir(Config().config_tree_dir):
         util.init()
     try:
         parse_args()        

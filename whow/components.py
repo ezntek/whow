@@ -46,9 +46,9 @@ class EventsComponent():
         self.load_events()
     
     def load_events(self) -> None:
-        for filename in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/events/")):
+        for filename in os.listdir(os.path.join(Config().config_tree_dir, "events")):
             if filename != "index.toml":
-                with open(os.path.join(os.environ['HOME'], "./.local/whow/events", filename), "r") as t:
+                with open(os.path.join(Config().config_tree_dir, "events", filename), "r") as t:
                     self.events.append(util.parse_evententry_from_dict(toml.loads(t.read()), os.path.splitext(filename)[0].replace("_", " ")))
 
     def datedisplay(self, event: util.EventEntry) -> str:
@@ -76,9 +76,9 @@ class ToDoComponent():
         self.show_important: bool = False
 
     def load_todos(self) -> None:
-        for filename in os.listdir(os.path.join(os.environ['HOME'], "./.local/whow/todos/")):
+        for filename in os.listdir(os.path.join(Config().config_tree_dir, "todos")):
             if filename != "index.toml":
-                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(os.environ['HOME'], "./.local/whow/todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " ")) # type: ignore
+                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(Config().config_tree_dir, "todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " ")) # type: ignore
 
                     if util.parse_category_from_name("! important") in todo.categories:
                         self.important_todos.append(todo)
