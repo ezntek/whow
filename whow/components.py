@@ -69,7 +69,7 @@ class EventsComponent():
         return retval
 
 class ToDoComponent():
-    def __init__(self, cfg: Config) -> None:
+    def __init__(self, cfg: Config = Config()) -> None:
         self.todos: list[util.ToDoEntry] = []
         self.important_todos: list[util.ToDoEntry] = []
         self.load_todos()
@@ -77,31 +77,36 @@ class ToDoComponent():
         self.cfg = cfg
 
     def load_todos(self) -> None:
+        # TODO: properly use cfg here
         for filename in os.listdir(os.path.join(Config().data_tree_dir, "todos")):
             if filename != "index.toml":
                     todo = util.parse_todoentry_from_dict(toml.load(os.path.join(Config().data_tree_dir, "todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " ")) # type: ignore
 
-                    if util.parse_category_from_name("! important", self.cfg) in todo.categories:
+                    if util.parse_category_from_name("important", self.cfg) in todo.categories:
                         self.important_todos.append(todo)
                     else:
                         self.todos.append(todo)
 
     def __repr__(self) -> str:
-        retval = f"{Styles.bold}To-Do's{Styles.end} \n"
+        retval = util.fprint(f"{Styles.bold}{util.emoji('✅ ', self.cfg)}To-Do's{Styles.end} \n\n", padding=1)
         
-        for todo in self.todos:
-            categories_string: str = ""
-            for category in todo.categories:
-                categories_string += f"{category.__repr__()} "
-            retval += util.fprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n")
-        return retval
+        if self.todos:
+            for todo in self.todos:
+                categories_string: str = ""
+                for category in todo.categories:
+                    categories_string += f"{category.__repr__()} "
+                retval += util.fprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n")
+            return retval
+        else:
+            retval += util.fprint("There aren't any to-dos.", padding=1)
+            return retval
 
 class ImportantComponent():
     def __repr__(self) -> str:
         return ""
 
 class DateDisplay():
-    def __init__(self, cfg: Config) -> None:
+    def __init__(self, cfg: Config = Config()) -> None:
         # set up the base variable
         self.date_time_now = datetime.datetime.now()
 
@@ -115,7 +120,7 @@ class DateDisplay():
             self.time = self.date_time_now.strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue.bg}{util.emoji('📅')} {self.date}{Styles.end} {Styles.bold}{Colors.magenta.bg}{util.emoji('🕓')} {self.time}{Styles.end}"
+        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue.bg}{util.emoji('📅', cfg)} {self.date}{Styles.end} {Styles.bold}{Colors.magenta.bg}{util.emoji('🕓')} {self.time}{Styles.end}"
 
 @dataclass
 class Separator():
@@ -124,7 +129,7 @@ class Separator():
     Available Modes: line, equals or tilde
     """
 
-    cfg: Config
+    cfg: Config = Config()
     length: int = 27
 
     def __repr__(self) -> str:
@@ -224,8 +229,8 @@ def match_name_with_component(name: str, config: Config = Config()) -> (  DateDi
         case _:
             raise NameError(f"Section \"{name}\" not found!")
     
-def build_component_list(config: Config = Config()) -> list[DateDisplay | EventsComponent | ImportantComponent | ToDoComponent | ScheduleComponent | Separator | Calendar]:
+def build_component_list(config: Config) -> list[DateDisplay | EventsComponent | ImportantComponent | ToDoComponent | ScheduleComponent | Separator | Calendar]:
     """
     Return a list of components based on user's configuration.
     """
-    return [match_name_with_component(s, config) for s in Config().sections]
+    return [match_name_with_component(s, config) for s in config.sections]

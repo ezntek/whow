@@ -219,8 +219,13 @@ def parse_args(cfg: Config) -> None:
                 case _:
                     print_help()
 
+        case "init":
+            util.init(verbose=True)
         case "show":
-            show(sys.argv[2])
+            if not len(sys.argv) <= 2:
+                show(sys.argv[2])
+            else:
+                show("all")
         
         case _:
             print_help()
@@ -233,7 +238,7 @@ def show(section: str = "all") -> None:
             for sc in sections:
                 print(sc.__repr__())
         case _:
-            cmp.match_name_with_component(section).__repr__()
+            print(cmp.match_name_with_component(section).__repr__())
 
 
 # Main Function

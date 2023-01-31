@@ -88,14 +88,14 @@ def indexify_weekday(weekday: int) -> int:
         case _:
             return weekday+1
 
-def emoji(emoji: str) -> str | None:
+def emoji(emoji: str, cfg: Config) -> str | None:
     """
     Print out an emoji if `enable_emojis` is set to true on the configuration.
     """
-    if Config().enable_emojis:
+    if cfg.enable_emojis:
         return emoji
 
-def fprint(string: str, padding: int = 1, flowtext: bool = True) -> str:
+def fprint(string: str, padding: int = 0, flowtext: bool = True) -> str:
     """
     Return a string, omitting overflowed text based
     on the terminal width.
@@ -197,13 +197,13 @@ def pop_indextoml_element(element: int, cfg: Config, type: str = "todos",) -> No
     if type != "todos" and type != "events":
         type = "todos"
     
-    with open(os.path.join(cfg.data_tree_dir, f"index.toml"), "r") as index_toml:
+    with open(os.path.join(cfg.data_tree_dir, f"todos/index.toml"), "r") as index_toml:
         indexes: list[int | str] = toml.loads(index_toml.read())['indexes']
         for count, idx in enumerate(indexes):
             if idx == element:
                 indexes[count] = "None"
     
-    with open(os.path.join(cfg.data_tree_dir, f"index.toml"), "w") as index_toml:
+    with open(os.path.join(cfg.data_tree_dir, f"todos/index.toml"), "w") as index_toml:
         index_toml.write(toml.dumps({
             "indexes": indexes
         }))
@@ -372,10 +372,10 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
     certain functions only.
     """
     # replace all whitespaces with underscores
-    todo_entry.name.replace(" ", "_")
+    #todo_entry.name.replace(" ", "_")
 
     # guard clause
-    if os.path.exists(os.path.join(cfg.data_tree_dir, f"{todo_entry.name}.toml")):
+    if os.path.exists(os.path.join(cfg.data_tree_dir, f"todos/{todo_entry.name}.toml")):
         if not force:
             warn("A to-do entry with the same name exists. Aborting.") if not quiet else None
             return
@@ -384,13 +384,13 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
     todo_idx = (0, 0)
     if not use_old_index:
         # load the used indexes
-        with open(os.path.join(cfg.data_tree_dir, "index.toml")) as indexes:
+        with open(os.path.join(cfg.data_tree_dir, "todos/index.toml")) as indexes:
             idx: list[int | str] = toml.loads(indexes.read())['indexes']
         
         todo_idx = _fill_idx(idx)
 
         # write new index.toml
-        with open(os.path.join(cfg.data_tree_dir, "index.toml"), "w") as indextoml:
+        with open(os.path.join(cfg.data_tree_dir, "todos/index.toml"), "w") as indextoml:
             indextoml.write(toml.dumps({
                 "indexes": todo_idx[0]
             }))
@@ -418,12 +418,14 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
 
     return f"Registered New To-Do: \n{t}"
 
-def init(destroy: bool = False) -> None:
+def init(destroy: bool = False, verbose: bool = False) -> None:
     """
     Create the necessary paths for the To-Dos and Events.
     """
     cfg = Config() # no existing config exists yet
     
+    log("Reconfiguring Whow...") if verbose else None
+
     if destroy:
         warn(f"Overwriting {cfg.config_tree_dir} and {cfg.data_tree_dir}...")
         try:
@@ -446,10 +448,12 @@ def init(destroy: bool = False) -> None:
 
     for dir in dirs:
         if not os.path.isdir(dir):
+            log(f"Created directory {dir}.") if verbose else None
             os.mkdir(dir)
 
     for dir in tree_dirs:
         if not os.path.isdir(os.path.join(cfg.data_tree_dir, dir)):
+            log(f"Created directory {dir}.") if verbose else None
             os.mkdir(os.path.join(cfg.data_tree_dir, dir))
     
 
@@ -460,26 +464,31 @@ def init(destroy: bool = False) -> None:
     )
 
     # write the index.toml's
-    todos_indextoml = open(os.path.join(cfg.data_tree_dir, 'index.toml'), "w+")
-    events_indextoml = open(os.path.join(cfg.data_tree_dir, 'index.toml'), "w+") 
+    todos_indextoml = open(os.path.join(cfg.data_tree_dir, 'todos/index.toml'), "w+")
+    events_indextoml = open(os.path.join(cfg.data_tree_dir, 'events/index.toml'), "w+") 
     todos_indextoml.write(indextoml_tmp)
     events_indextoml.write(indextoml_tmp)
 
     todos_indextoml.close()
     events_indextoml.close()
 
-    # create a new important category
-    register_category(Category("important", Colors.red()), cfg, force=True)
-
-    # create the important category and the default config.toml
+    # create the default config.toml
+    log("Writing configuration file...") if verbose else None
     cfg.write_cfg(quiet=True)
     
+    # create a new important category
+    log("Registering important category...") if verbose else None
+    register_category(Category("important", Colors.red()), cfg, force=True)
 
 def split_string_date(string_date: str) -> datetime.date:
     """
     Split a string date in the date/month/year format into a datetime.date object.
     """
     string_date_array = string_date.split("/")
+
+    if not string_date:
+        return datetime.date(1, 1, 1)
+
     if (int(string_date_array[0]) > 31) or (int(string_date_array[1]) > 12):
         error("The date you supplied was invalid! It has to follow the date/month/year format.")
         exit()
@@ -504,7 +513,7 @@ def match_name_with_category(name: str, cfg: Config) -> Category:
     for path in os.listdir(os.path.join(cfg.data_tree_dir, f"categories")):
         if os.path.splitext(path)[0] == name:
             try:
-                return parse_category_from_name(toml.load(os.path.join(cfg.data_tree_dir, "categories", path))['name'])# type: ignore
+                return parse_category_from_name(toml.load(os.path.join(cfg.data_tree_dir, "categories", path))['name'], cfg)# type: ignore
             except NameError:
                 break
     raise NameError("The category name was not found! Perhaps you did not add it yet?")
@@ -528,13 +537,13 @@ def register_category(category: Category, cfg: Config, force: bool = False, quie
     
     n = category.name.replace(" ", "_")
 
-    if os.path.exists(os.path.join(cfg.data_tree_dir, f"{n}.toml")):
+    if os.path.exists(os.path.join(cfg.data_tree_dir, f"categories/{n}.toml")):
         if not force:
             warn("A category entry with the same name exists. Aborting...") if not quiet else None
             return
         warn("A category entry with the same name already exists. Overwriting...") if not quiet else None
 
-    with open(os.path.join(cfg.data_tree_dir, f'{n}.toml'), "w+") as categorytoml:
+    with open(os.path.join(cfg.data_tree_dir, f'categories/{n}.toml'), "w+") as categorytoml:
         t = toml.dumps(category.get_dictionary())
         categorytoml.write(t)
 
@@ -580,10 +589,10 @@ def register_event(event_entry: EventEntry, cfg: Config, force: bool = False, qu
         warn("An event entry with the same name already exists. Overwriting.") if not quiet else None
         
     event_idx = _fill_idx(toml.load(os.path.join(cfg.data_tree_dir, "index.toml"))['indexes'])
-    with open(os.path.join(cfg.data_tree_dir, "index.toml"), "w") as indextoml:
+    with open(os.path.join(cfg.data_tree_dir, "events/index.toml"), "w") as indextoml:
         indextoml.write(toml.dumps({"indexes": event_idx[0]}))
     
-    with open(os.path.join(cfg.data_tree_dir, f"{event_entry.name.replace(' ', '_')}.toml"), "w") as tml:
+    with open(os.path.join(cfg.data_tree_dir, f"events/{event_entry.name.replace(' ', '_')}.toml"), "w") as tml:
         event_entry_to = event_entry.event_to if event_entry.event_to is not None else "fullday"
 
         t = toml.dumps(
