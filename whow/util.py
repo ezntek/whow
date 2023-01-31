@@ -426,8 +426,12 @@ def init(destroy: bool = False) -> None:
     cfg = Config() # no existing config exists yet
 
     if destroy:
-        warn(f"Overwriting {cfg.config_tree_dir}...")
-        shutil.rmtree(cfg.config_tree_dir)
+        warn(f"Overwriting {cfg.config_tree_dir} and {cfg.data_tree_dir}...")
+        try:
+            shutil.rmtree(cfg.config_tree_dir)
+            shutil.rmtree(cfg.data_tree_dir)
+        except FileNotFoundError:
+            pass
 
     # create dirs
     dirs = [
@@ -446,8 +450,8 @@ def init(destroy: bool = False) -> None:
             os.mkdir(dir)
 
     for dir in tree_dirs:
-        if not os.path.isdir(os.path.join(cfg.config_tree_dir, dir)):
-            os.mkdir(os.path.join(cfg.config_tree_dir, dir))
+        if not os.path.isdir(os.path.join(cfg.data_tree_dir, dir)):
+            os.mkdir(os.path.join(cfg.data_tree_dir, dir))
     
 
     indextoml_tmp = toml.dumps(
@@ -457,8 +461,8 @@ def init(destroy: bool = False) -> None:
     )
 
     # write the index.toml's
-    todos_indextoml = open(os.path.join(cfg.config_tree_dir, 'index.toml'), "w+")
-    events_indextoml = open(os.path.join(cfg.config_tree_dir, 'index.toml'), "w+") 
+    todos_indextoml = open(os.path.join(cfg.data_tree_dir, 'index.toml'), "w+")
+    events_indextoml = open(os.path.join(cfg.data_tree_dir, 'index.toml'), "w+") 
     todos_indextoml.write(indextoml_tmp)
     events_indextoml.write(indextoml_tmp)
 
