@@ -29,7 +29,8 @@ class Config():
                 separator_length:   int       = 27,
                 enable_emojis:      bool      = True,
                 time_format:        int       = 12,
-                config_tree_dir:    str       = os.path.join(os.environ['HOME'], "./.local/whow"),
+                data_tree_dir:      str       = os.path.join(os.environ['HOME'], "./.local/whow"),
+                config_tree_dir:    str       = os.path.join(os.environ['HOME'], "./.config/whow"),
                 sections:           list[str] = [ "separator", "datetime", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]) -> None:
         "Create a new config instance."
 
@@ -38,7 +39,8 @@ class Config():
         self.enable_emojis: bool = enable_emojis
         self.time_format: int = time_format
         self.config_tree_dir: str = config_tree_dir
-        self.sections:list[str] = sections
+        self.sections: list[str] = sections
+        self.data_tree_dir: str = data_tree_dir
 
         self.CONFPATH = os.path.join(os.environ['HOME'], "./.config/whow/config.toml")
         if os.path.exists(self.CONFPATH):
@@ -54,7 +56,7 @@ class Config():
         self.separator_length: int = data['config']['separator_length'] if "separator_length" in data['config'].keys() else self.separator_length
         self.enable_emojis: bool = data['config']['enable_emojis'] if "enable_emojis" in data['config'].keys() else self.enable_emojis
         self.time_format: int = int(data['config']['time_format']) if "time_format" in data['config'].keys() else self.time_format
-        self.cache_path: str = data['config']['config_tree_dir'].format(HOME=os.environ['HOME']) if "config_tree_dir" in data['config'].keys() else self.config_tree_dir
+        self.config_tree_dir: str = data['config']['config_tree_dir'].format(HOME=os.environ['HOME']) if "config_tree_dir" in data['config'].keys() else self.config_tree_dir
         self.sections: list[str] = data['config']['sections'] if "sections" in data['config'].keys() else self.sections
         
         
@@ -70,7 +72,8 @@ class Config():
                 "separator_length": self.separator_length,
                 "enable_emojis": self.enable_emojis,
                 "time_format": self.time_format,
-                "cache_path": self.cache_path,
+                "config_tree_dir": self.config_tree_dir,
+                "data_tree_dir": self.data_tree_dir,
                 "sections": self.sections
             }
         }

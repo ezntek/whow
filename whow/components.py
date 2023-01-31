@@ -69,18 +69,19 @@ class EventsComponent():
         return retval
 
 class ToDoComponent():
-    def __init__(self, cfg: Config = Config()) -> None:
+    def __init__(self, cfg: Config) -> None:
         self.todos: list[util.ToDoEntry] = []
         self.important_todos: list[util.ToDoEntry] = []
         self.load_todos()
         self.show_important: bool = False
+        self.cfg = cfg
 
     def load_todos(self) -> None:
         for filename in os.listdir(os.path.join(Config().config_tree_dir, "todos")):
             if filename != "index.toml":
                     todo = util.parse_todoentry_from_dict(toml.load(os.path.join(Config().config_tree_dir, "todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " ")) # type: ignore
 
-                    if util.parse_category_from_name("! important") in todo.categories:
+                    if util.parse_category_from_name("! important", self.cfg) in todo.categories:
                         self.important_todos.append(todo)
                     else:
                         self.todos.append(todo)
