@@ -46,9 +46,9 @@ class EventsComponent():
         self.load_events()
     
     def load_events(self) -> None:
-        for filename in os.listdir(os.path.join(Config().config_tree_dir, "events")):
+        for filename in os.listdir(os.path.join(Config().data_tree_dir, "events")):
             if filename != "index.toml":
-                with open(os.path.join(Config().config_tree_dir, "events", filename), "r") as t:
+                with open(os.path.join(Config().data_tree_dir, "events", filename), "r") as t:
                     self.events.append(util.parse_evententry_from_dict(toml.loads(t.read()), os.path.splitext(filename)[0].replace("_", " ")))
 
     def datedisplay(self, event: util.EventEntry) -> str:
@@ -77,9 +77,9 @@ class ToDoComponent():
         self.cfg = cfg
 
     def load_todos(self) -> None:
-        for filename in os.listdir(os.path.join(Config().config_tree_dir, "todos")):
+        for filename in os.listdir(os.path.join(Config().data_tree_dir, "todos")):
             if filename != "index.toml":
-                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(Config().config_tree_dir, "todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " ")) # type: ignore
+                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(Config().data_tree_dir, "todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " ")) # type: ignore
 
                     if util.parse_category_from_name("! important", self.cfg) in todo.categories:
                         self.important_todos.append(todo)
@@ -99,7 +99,8 @@ class ToDoComponent():
         return retval
 
 class ImportantComponent():
-    pass
+    def __repr__(self) -> str:
+        return ""
 
 class DateDisplay():
     def __init__(self, cfg: Config = Config()) -> None:
