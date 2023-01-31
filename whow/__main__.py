@@ -120,9 +120,9 @@ def parse_args(cfg: Config) -> None:
         case "clean":
             match input(f"{util.warn('This is a highly destructive action, are you sure? (y/n) ', return_string=True)}").lower():
                 case "yes":
-                    util.init(cfg, destroy=True)
+                    util.init(destroy=True)
                 case "y":
-                    util.init(cfg, destroy=True)
+                    util.init(destroy=True)
                 case _:
                     util.log("aborting...")
 
@@ -239,8 +239,8 @@ def show(section: str = "all") -> None:
 # Main Function
 def main() -> None:
     cfg = Config()
-    if not os.path.isdir(os.path.join(os.environ['HOME'], "./.config/whow")) or os.path.isdir(cfg.config_tree_dir):
-        util.init(cfg)
+    if not os.path.isdir(cfg.data_tree_dir) or not os.path.isdir(cfg.config_tree_dir):
+        util.init()
     try:
         parse_args(cfg)        
     except KeyboardInterrupt:

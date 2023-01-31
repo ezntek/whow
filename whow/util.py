@@ -422,9 +422,8 @@ def init(destroy: bool = False) -> None:
     """
     Create the necessary paths for the To-Dos and Events.
     """
-
     cfg = Config() # no existing config exists yet
-
+    
     if destroy:
         warn(f"Overwriting {cfg.config_tree_dir} and {cfg.data_tree_dir}...")
         try:
@@ -469,11 +468,11 @@ def init(destroy: bool = False) -> None:
     todos_indextoml.close()
     events_indextoml.close()
 
+    # create a new important category
+    register_category(Category("important", Colors.red()), cfg, force=True)
+
     # create the important category and the default config.toml
     cfg.write_cfg(quiet=True)
-
-    # create a new important category
-    register_category(Category("important", Colors.red()), cfg, quiet=True)
     
 
 def split_string_date(string_date: str) -> datetime.date:
@@ -670,7 +669,7 @@ def list_categories(cfg: Config) -> None:
     """
     List all categories.
     """
-
+    
     for path in os.listdir(os.path.join(cfg.data_tree_dir, "categories")):
         try:
             print(parse_category_from_dict(toml.load(os.path.join(cfg.data_tree_dir, "categories", path))))

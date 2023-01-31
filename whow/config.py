@@ -58,9 +58,6 @@ class Config():
         self.time_format: int = int(data['config']['time_format']) if "time_format" in data['config'].keys() else self.time_format
         self.config_tree_dir: str = data['config']['config_tree_dir'].format(HOME=os.environ['HOME']) if "config_tree_dir" in data['config'].keys() else self.config_tree_dir
         self.sections: list[str] = data['config']['sections'] if "sections" in data['config'].keys() else self.sections
-        
-        
-        
 
     def get_dict(self) -> dict[str, dict[str, bool | str | int | list[str]]]:
         """

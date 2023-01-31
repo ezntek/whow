@@ -87,12 +87,10 @@ class ToDoComponent():
                         self.todos.append(todo)
 
     def __repr__(self) -> str:
-        retval: str = ""
-        retval += f"{Styles.bold}To-Do's{Styles.end} \n"
-
-        categories_string: str = ""
+        retval = f"{Styles.bold}To-Do's{Styles.end} \n"
         
         for todo in self.todos:
+            categories_string: str = ""
             for category in todo.categories:
                 categories_string += f"{category.__repr__()} "
             retval += util.fprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n")
@@ -103,13 +101,18 @@ class ImportantComponent():
         return ""
 
 class DateDisplay():
-    def __init__(self, cfg: Config = Config()) -> None:
+    def __init__(self, cfg: Config) -> None:
         # set up the base variable
         self.date_time_now = datetime.datetime.now()
 
         # data
         self.date = self.date_time_now.strftime("%A, %B %d %Y")
-        self.time = self.date_time_now.strftime("%H:%M:%S")
+        if cfg.time_format == 12:
+            afternoon_time = self.date_time_now.time().hour >= 12
+            hours = self.date_time_now.time().hour - (12 if (self.date_time_now.time().hour > 12 and afternoon_time) else 0)
+            self.time = f"{hours}:"+self.date_time_now.strftime("%M:%S")+(" PM" if afternoon_time else " AM")
+        else:
+            self.time = self.date_time_now.strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
         return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue.bg}{util.emoji('📅')} {self.date}{Styles.end} {Styles.bold}{Colors.magenta.bg}{util.emoji('🕓')} {self.time}{Styles.end}"
