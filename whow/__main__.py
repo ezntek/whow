@@ -92,7 +92,7 @@ def parse_args(cfg: Config) -> None:
                         # TODO: add a function that can parse these dates
                         rv = util.register_todo(util.ToDoEntry(
                             name,
-                            None if due_date == "" else util.split_string_date(due_date),
+                            None if due_date == "" else util.split_string_date(util.unify_date_formats(due_date)),
                             category_classes,
                             overdue = True if util.split_string_date(due_date) < datetime.datetime.today().date() else False
                         ), cfg)

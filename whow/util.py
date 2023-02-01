@@ -132,7 +132,7 @@ def print_center(string: str, width: int, bias_left: bool = True, return_string:
             return f"{' '*int(padding_width/2)}{string}{' '*int(padding_width/2)}"
         print(f"{' '*int(padding_width/2)}{string}{''*int(padding_width/2)}")
 
-def parse_category_from_name(s: str, cfg: Config) -> Category:
+def parse_category_from_name(s: str, cfg: Config = Config()) -> Category:
     """
     Parse a dictionary that was parsed from a `Category` back into a `Category`.
     """
@@ -456,7 +456,6 @@ def init(destroy: bool = False, verbose: bool = False) -> None:
             log(f"Created directory {dir}.") if verbose else None
             os.mkdir(os.path.join(cfg.data_tree_dir, dir))
     
-
     indextoml_tmp = toml.dumps(
         {
             "indexes": [] # type: ignore

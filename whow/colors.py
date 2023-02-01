@@ -119,7 +119,7 @@ def get_color_class_from_name(name: str) -> Color: # type: ignore
         Return the Color class, based on its name.
         """
 
-        match name:
+        match name.lower():
             case "black":
                 return Black()
             case "red":

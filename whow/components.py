@@ -34,11 +34,11 @@ def clear_none(l: list) -> list: # type: ignore
     return l # type: ignore
 
 class ScheduleComponent():
-    def __init__(self, cfg: Config = Config()) -> None:
-        pass
+    def __init__(self, cfg: Config) -> None:
+        self.cfg = cfg
 
     def __repr__(self) -> str:
-        return("pretend this is schedule")
+        return("")
 
 class EventsComponent():
     def __init__(self, cfg: Config) -> None:
@@ -56,7 +56,7 @@ class EventsComponent():
         return f"{Colors.white()} {event.event_from.__repr__()} {Styles.end}"
         
     def __repr__(self) -> str:
-        retval = util.sfprint(f"{Styles.bold}{util.emoji('🗓️ ')}Events{Styles.end}\n\n", padding=1)
+        retval = util.sfprint(f"{Styles.bold}{util.emoji('🗓️ ')} Events{Styles.end}\n\n", padding=1)
 
         categories_string: str = ""
 
@@ -84,7 +84,7 @@ class ToDoComponent():
 
         for filename in os.listdir(os.path.join(self.cfg.data_tree_dir, "todos")):
             if filename != "index.toml":
-                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(self.cfg.data_tree_dir, "todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " ")) # type: ignore
+                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(self.cfg.data_tree_dir, "todos", filename)), os.path.splitext(filename)[0].replace("_", " "))
 
                     if util.parse_category_from_name("important", self.cfg) in todo.categories:
                         self.important_todos.append(todo)
@@ -99,7 +99,7 @@ class ToDoComponent():
                 categories_string: str = ""
                 for category in todo.categories:
                     categories_string += f"{category.__repr__()} "
-                retval += util.sfprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n")
+                retval += util.sfprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end}{todo.name}\n")
         else:
             retval += util.sfprint("There aren't any to-dos.", padding=1)
         return retval
@@ -157,10 +157,10 @@ class CalDate:
         return f"{self.bg}{self.date}{Styles.end}"
 
 class Calendar():
-    def __init__(self, cfg: Config = Config()) -> None:
+    def __init__(self) -> None:
         datetime_now = datetime.datetime.now().date()
         monthrange = calendar.monthrange(int(datetime_now.strftime("%Y")), int(datetime_now.strftime("%m")))
-        
+         
         self.cal = [[CalDate(0, []) for _ in range(7)] for _ in range(5)]
         
         row_counter = 0
@@ -219,7 +219,7 @@ def match_name_with_component(name: str, config: Config = Config()) -> (  DateDi
         case "separator":
             return Separator(config)
         case "calendar":
-            return Calendar(config)
+            return Calendar()
         case "datetime":
             return DateDisplay(config)
         case "events":
