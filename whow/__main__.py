@@ -26,6 +26,7 @@ import shutil
 import util
 import colors
 import components as cmp
+from config import Config
 
 # Constant Definitions
 __version__ = "0.1.0"
@@ -40,7 +41,10 @@ def print_help() -> None:
     with open(os.path.join(CURRENT_PATH, "./res/help.txt")) as helptxt:
         print(helptxt.read())
 
-def parse_args() -> None:
+def parse_args(cfg: Config) -> None:
+    if len(sys.argv) <= 1:
+        show("all")
+
     # do some sys.argv parsing here
     match sys.argv[1]: # slicing magic
         case "-h":
@@ -78,19 +82,20 @@ def parse_args() -> None:
 
                         # check for category existence
                         for category_name in categories:
-                            if not util.check_category_existence(category_name[1:]):
+                            if not util.check_category_existence(category_name[1:], cfg):
                                 util.warn(f"Category {category_name[1:]} does not exist!")
                                 exit()
                             
-                            category_classes.append(util.match_name_with_category(category_name[1:]))
+                            category_classes.append(util.match_name_with_category(category_name[1:], cfg))
 
                         # call the backend
+                        # TODO: add a function that can parse these dates
                         rv = util.register_todo(util.ToDoEntry(
                             name,
-                            None if due_date is None else util.split_string_date(due_date),
+                            None if due_date == "" else util.split_string_date(util.unify_date_formats(due_date)),
                             category_classes,
                             overdue = True if util.split_string_date(due_date) < datetime.datetime.today().date() else False
-                        ))
+                        ), cfg)
 
                         util.log(rv) if rv is not None else None
                                 
@@ -99,7 +104,7 @@ def parse_args() -> None:
                             util.warn("Index of todo is required!")
 
                         index = int(sys.argv[3])
-                        if not util.del_todo(index):
+                        if not util.del_todo(index, cfg):
                             util.error(f"Failed to delete to-do by index {index}!")
 
                     case "mark":
@@ -107,7 +112,7 @@ def parse_args() -> None:
                             util.warn("Index of todo is required!")
                         
                         index = int(sys.argv[3])
-                        util.mark_todo(index)
+                        util.mark_todo(index, cfg)
                     case _:
                         print_help()
             except IndexError:
@@ -140,32 +145,31 @@ def parse_args() -> None:
                     else:
                         category_color = colors.Colors.white()
                     
-                    util.register_category(util.Category(category_name, category_color))
+                    util.register_category(util.Category(category_name, category_color), cfg)
                 
                 case "del":
                     if len(sys.argv) <= 3:
                         util.error("Name for deletion required!")
                         return
                     category_name = sys.argv[3]
-                    util.del_category(category_name)
+                    util.del_category(category_name, cfg)
                 
                 case "list":
-                    util.list_categories()
+                    util.list_categories(cfg)
 
                 case "clean":
                     match input(f"{util.warn('This is a highly destructive action, are you sure? (y/n) ', return_string=True)}").lower():
                         case "yes":
-                            shutil.rmtree(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
-                            os.mkdir(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
+                            shutil.rmtree(os.path.join(cfg.config_tree_dir, "categories"))
+                            os.mkdir(os.path.join(cfg.config_tree_dir, "categories"))
                         case "y":
-                            shutil.rmtree(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
-                            os.mkdir(os.path.join(os.environ['HOME'], "./.local/whow/categories"))
+                            shutil.rmtree(os.path.join(cfg.config_tree_dir, "categories"))
+                            os.mkdir(os.path.join(cfg.config_tree_dir, "categories"))
                         case _:
                             util.log("aborting...")
                             
                 case _:
                     print_help()
-
         case "event":
             match sys.argv[2]:
                 case "add":
@@ -188,7 +192,7 @@ def parse_args() -> None:
                         return
                     event_to_str: str = sys.argv[5]
 
-                    category_classes: list[util.Category] = [util.parse_category_from_name(c[1:])
+                    category_classes: list[util.Category] = [util.parse_category_from_name(c[1:], cfg)
                                                                 for c in sys.argv[6:]
                                                                     if c[0] == "@"]
                     
@@ -201,7 +205,7 @@ def parse_args() -> None:
                         description,
                         categories=category_classes,
                         full_day=True if event_to_str.lower() == "fullday" else False,
-                    ))
+                    ), cfg)
 
                     util.log(rv)
 
@@ -211,26 +215,40 @@ def parse_args() -> None:
                         util.error("Index for deletion required!")
                         return
                     idx = int(sys.argv[3])
-                    util.log(util.del_event(idx))
+                    util.log(util.del_event(idx, cfg))
                     
                 case _:
                     print_help()
 
-        case _: # default option (no arguments)
-            show()
+        case "init":
+            util.init(verbose=True)
+        case "show":
+            if not len(sys.argv) <= 2:
+                show(sys.argv[2])
+            else:
+                show("all")
+        
+        case _:
+            print_help()
 
-def show() -> None:
-    print(cmp.Separator(length=55))
-    print(cmp.DateDisplay())
-    print(cmp.Separator(length=55))
-    print(cmp.Calendar())
-    print(cmp.Separator(mode="equals", length=55))
+def show(section: str = "all") -> None:
+    match section:
+        case "all":
+            sections = cmp.build_component_list(Config())
 
- 
+            for sc in sections:
+                print(sc.__repr__())
+        case _:
+            print(cmp.match_name_with_component(section).__repr__())
+
+
 # Main Function
 def main() -> None:
+    cfg = Config()
+    if not os.path.isdir(cfg.data_tree_dir) or not os.path.isdir(cfg.config_tree_dir):
+        util.init()
     try:
-        parse_args()        
+        parse_args(cfg)        
     except KeyboardInterrupt:
         util.log("Interrupt signal received, quitting..")
         sys.exit()

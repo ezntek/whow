@@ -1,5 +1,7 @@
 [config]
-default_seperator = "line"
+default_separator = "line"
+seperator_length = 27
 enable_emojis = true
 time_format = 12
-sections = [ "separator", "caldate", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]
+cachepath = "{HOME}/.local/whow/"
+sections = [ "separator", "datetime", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]
