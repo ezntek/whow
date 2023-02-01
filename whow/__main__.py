@@ -89,9 +89,10 @@ def parse_args(cfg: Config) -> None:
                             category_classes.append(util.match_name_with_category(category_name[1:], cfg))
 
                         # call the backend
+                        # TODO: add a function that can parse these dates
                         rv = util.register_todo(util.ToDoEntry(
                             name,
-                            None if due_date is None else util.split_string_date(due_date),
+                            None if due_date == "" else util.split_string_date(due_date),
                             category_classes,
                             overdue = True if util.split_string_date(due_date) < datetime.datetime.today().date() else False
                         ), cfg)

@@ -41,9 +41,10 @@ class ScheduleComponent():
         return("pretend this is schedule")
 
 class EventsComponent():
-    def __init__(self, cfg: Config = Config()) -> None:
+    def __init__(self, cfg: Config) -> None:
         self.events: list[util.EventEntry] = []
         self.load_events()
+        self.cfg = cfg
     
     def load_events(self) -> None:
         for filename in os.listdir(os.path.join(Config().data_tree_dir, "events")):
@@ -51,36 +52,39 @@ class EventsComponent():
                 with open(os.path.join(Config().data_tree_dir, "events", filename), "r") as t:
                     self.events.append(util.parse_evententry_from_dict(toml.loads(t.read()), os.path.splitext(filename)[0].replace("_", " ")))
 
-    def datedisplay(self, event: util.EventEntry) -> str:
+    def DateDisplay(self, event: util.EventEntry) -> str:
         return f"{Colors.white()} {event.event_from.__repr__()} {Styles.end}"
         
     def __repr__(self) -> str:
-        retval: str = ""
-        retval += f"{Styles.bold}Events{Styles.end}"
+        retval = util.sfprint(f"{Styles.bold}{util.emoji('🗓️ ')}Events{Styles.end}\n\n", padding=1)
 
         categories_string: str = ""
 
-        for event in self.events:
-            retval += self.datedisplay(event)
-            for category in event.categories:
-                categories_string += f"{category.__repr__()} "
-            retval += util.fprint(f"{Styles.bold}#{event.index} {self.datedisplay(event)} {categories_string}")
-
+        if self.events:
+            for event in self.events:
+                retval += self.DateDisplay(event)
+                for category in event.categories:
+                    categories_string += f"{category.__repr__()} "
+                retval += util.sfprint(f"{Styles.bold}#{event.index} {self.DateDisplay(event)} {categories_string}")
+        else:
+            retval += util.sfprint("There aren't any events.", padding=1)
         return retval
 
 class ToDoComponent():
-    def __init__(self, cfg: Config = Config()) -> None:
+    def __init__(self, cfg: Config) -> None:
         self.todos: list[util.ToDoEntry] = []
         self.important_todos: list[util.ToDoEntry] = []
-        self.load_todos()
         self.show_important: bool = False
         self.cfg = cfg
+        
+        self.load_todos()
 
     def load_todos(self) -> None:
-        # TODO: properly use cfg here
-        for filename in os.listdir(os.path.join(Config().data_tree_dir, "todos")):
+        "Load the to-dos."
+
+        for filename in os.listdir(os.path.join(self.cfg.data_tree_dir, "todos")):
             if filename != "index.toml":
-                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(Config().data_tree_dir, "todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " ")) # type: ignore
+                    todo = util.parse_todoentry_from_dict(toml.load(os.path.join(self.cfg.data_tree_dir, "todos", filename), "r"), os.path.splitext(filename)[0].replace("_", " ")) # type: ignore
 
                     if util.parse_category_from_name("important", self.cfg) in todo.categories:
                         self.important_todos.append(todo)
@@ -88,29 +92,29 @@ class ToDoComponent():
                         self.todos.append(todo)
 
     def __repr__(self) -> str:
-        retval = util.fprint(f"{Styles.bold}{util.emoji('✅ ', self.cfg)}To-Do's{Styles.end} \n\n", padding=1)
+        retval = util.sfprint(f"{Styles.bold}{util.emoji('✅ ')}To-Do's{Styles.end} \n\n", padding=1)
         
         if self.todos:
             for todo in self.todos:
                 categories_string: str = ""
                 for category in todo.categories:
                     categories_string += f"{category.__repr__()} "
-                retval += util.fprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n")
-            return retval
+                retval += util.sfprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end} {todo.name}\n")
         else:
-            retval += util.fprint("There aren't any to-dos.", padding=1)
-            return retval
+            retval += util.sfprint("There aren't any to-dos.", padding=1)
+        return retval
 
 class ImportantComponent():
     def __repr__(self) -> str:
         return ""
 
 class DateDisplay():
-    def __init__(self, cfg: Config = Config()) -> None:
+    def __init__(self, cfg: Config) -> None:
         # set up the base variable
         self.date_time_now = datetime.datetime.now()
 
         # data
+        self.cfg = cfg
         self.date = self.date_time_now.strftime("%A, %B %d %Y")
         if cfg.time_format == 12:
             afternoon_time = self.date_time_now.time().hour >= 12
@@ -120,7 +124,7 @@ class DateDisplay():
             self.time = self.date_time_now.strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue.bg}{util.emoji('📅', cfg)} {self.date}{Styles.end} {Styles.bold}{Colors.magenta.bg}{util.emoji('🕓')} {self.time}{Styles.end}"
+        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue.bg}{util.emoji('📅', self.cfg)} {self.date}{Styles.end} {Styles.bold}{Colors.magenta.bg}{util.emoji('🕓')} {self.time}{Styles.end}"
 
 @dataclass
 class Separator():

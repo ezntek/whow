@@ -88,14 +88,14 @@ def indexify_weekday(weekday: int) -> int:
         case _:
             return weekday+1
 
-def emoji(emoji: str, cfg: Config) -> str | None:
+def emoji(emoji: str, cfg: Config = Config()) -> str | None:
     """
     Print out an emoji if `enable_emojis` is set to true on the configuration.
     """
     if cfg.enable_emojis:
         return emoji
 
-def fprint(string: str, padding: int = 0, flowtext: bool = True) -> str:
+def sfprint(string: str, padding: int = 0, flowtext: bool = True) -> str:
     """
     Return a string, omitting overflowed text based
     on the terminal width.
