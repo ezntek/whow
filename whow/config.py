@@ -31,7 +31,7 @@ class Config():
                 time_format:        int       = 12,
                 data_tree_dir:      str       = os.path.join(os.environ['HOME'], "./.local/whow"),
                 config_tree_dir:    str       = os.path.join(os.environ['HOME'], "./.config/whow"),
-                sections:           list[str] = [ "separator", "datetime", "separator", "important", "todos", "separator", "events", "separator", "schedule" ]) -> None:
+                sections:           list[str] = [ "separator", "datetime", "separator", "important", "separator", "todos", "separator", "events", "separator", "schedule" ]) -> None:
         "Create a new config instance."
 
         self.default_separator: str = default_separator

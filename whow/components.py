@@ -67,7 +67,7 @@ class EventsComponent():
                     categories_string += f"{category.__repr__()} "
                 retval += util.sfprint(f"{Styles.bold}#{event.index} {self.DateDisplay(event)} {categories_string}", padding=1)
         else:
-            retval += util.sfprint("There aren't any events.", padding=1)
+            retval += util.sfprint("There aren't any events.\n", padding=1)
         return retval
 
 class ToDoComponent():
@@ -101,7 +101,7 @@ class ToDoComponent():
                     categories_string += f"{category.__repr__()} "
                 retval += util.sfprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end}{todo.name}\n", padding=1)
         else:
-            retval += util.sfprint("There aren't any to-dos.", padding=1)
+            retval += util.sfprint("There aren't any to-dos.\n", padding=1)
         return retval
 
 class ImportantToDosComponent():
@@ -118,7 +118,7 @@ class ImportantToDosComponent():
                 categories_string += f"{category.__repr__} "
             retval += util.sfprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end}{todo.name}\n")
         else:
-            retval += util.sfprint("There aren't any important to-dos.", padding=1)
+            retval += util.sfprint("There aren't any important to-dos.\n", padding=1)
         return retval
 
             
@@ -148,17 +148,19 @@ class Separator():
     Available Modes: line, equals or tilde
     """
 
-    cfg: Config = Config()
-    length: int = 27
+    def __init__(self, cfg: Config):
+
+        self.cfg = cfg
+        self.length: int = self.cfg.separator_length if self.cfg.separator_length else 27
 
     def __repr__(self) -> str:
         match self.cfg.default_separator:
             case "line":
-                return "-"*self.length
+                return util.sfprint("-"*self.length, flowtext=False)
             case "equals":
-                return "="*self.length
+                return util.sfprint("="*self.length, flowtext=True)
             case "tilde":
-                return "~"*self.length
+                return util.sfprint("~"*self.length, flowtext=False)
             case _:
                 return ""
 
