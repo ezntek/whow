@@ -65,7 +65,7 @@ class EventsComponent():
                 retval += self.DateDisplay(event)
                 for category in event.categories:
                     categories_string += f"{category.__repr__()} "
-                retval += util.sfprint(f"{Styles.bold}#{event.index} {self.DateDisplay(event)} {categories_string}")
+                retval += util.sfprint(f"{Styles.bold}#{event.index} {self.DateDisplay(event)} {categories_string}", padding=1)
         else:
             retval += util.sfprint("There aren't any events.", padding=1)
         return retval
@@ -99,14 +99,29 @@ class ToDoComponent():
                 categories_string: str = ""
                 for category in todo.categories:
                     categories_string += f"{category.__repr__()} "
-                retval += util.sfprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end}{todo.name}\n")
+                retval += util.sfprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end}{todo.name}\n", padding=1)
         else:
             retval += util.sfprint("There aren't any to-dos.", padding=1)
         return retval
 
-class ImportantComponent():
+class ImportantToDosComponent():
+    def __init__(self, cfg: Config) -> None:
+        self.todo_component = ToDoComponent(cfg)
+        self.todo_component.load_todos()
+
     def __repr__(self) -> str:
-        return ""
+        retval = util.sfprint(f"{Styles.bold}{util.emoji('❗ ')}Important To-Dos{Styles.end} \n \n", padding=1)
+
+        for todo in self.todo_component.important_todos:
+            categories_string: str = ""
+            for category in todo.categories:
+                categories_string += f"{category.__repr__} "
+            retval += util.sfprint(f"{Styles.bold}#{todo.index} {categories_string}{Styles.end}{todo.name}\n")
+        else:
+            retval += util.sfprint("There aren't any important to-dos.", padding=1)
+        return retval
+
+            
 
 class DateDisplay():
     def __init__(self, cfg: Config) -> None:
@@ -209,7 +224,7 @@ class Calendar():
 
 # Function definitions
 def match_name_with_component(name: str, config: Config = Config()) -> (  DateDisplay          | EventsComponent
-                                                             | ImportantComponent   | ToDoComponent
+                                                             | ImportantToDosComponent   | ToDoComponent
                                                              | ScheduleComponent    | Separator
                                                              | Calendar):
     """
@@ -229,11 +244,11 @@ def match_name_with_component(name: str, config: Config = Config()) -> (  DateDi
         case "schedule":
             return ScheduleComponent(config)
         case "important":
-            return ImportantComponent()
+            return ImportantToDosComponent(config)
         case _:
             raise NameError(f"Section \"{name}\" not found!")
     
-def build_component_list(config: Config) -> list[DateDisplay | EventsComponent | ImportantComponent | ToDoComponent | ScheduleComponent | Separator | Calendar]:
+def build_component_list(config: Config) -> list[DateDisplay | EventsComponent | ImportantToDosComponent | ToDoComponent | ScheduleComponent | Separator | Calendar]:
     """
     Return a list of components based on user's configuration.
     """

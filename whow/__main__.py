@@ -224,7 +224,11 @@ def parse_args(cfg: Config) -> None:
             util.init(verbose=True)
         case "show":
             if not len(sys.argv) <= 2:
-                show(sys.argv[2])
+                section_name = sys.argv[2]
+                try:
+                    show(section_name)
+                except NameError:
+                    util.error(f"Section \"{section_name}\" not found!")
             else:
                 show("all")
         
