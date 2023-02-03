@@ -164,21 +164,21 @@ def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str,
         index=d[file_name]["index"] # type: ignore
     )
     
-def _fill_idx(l: list[int | str]) -> tuple[list[int | str], int]:
+def _fill_idx(l: list[int]) -> tuple[list[int], int]:
     """
     fill an index.toml indexes list.
     This function is to bypass the use
     of a for-else clause, which is
     deprecated.
     """
-    retval: list[int | str] = []
+    retval: list[int] = []
     idx = 0
     found_spot = False
 
     for count, i in enumerate(l):
         retval.append(count)
         #print(f"appended {count}, {i} at {count}")
-        if i == "None":
+        if i == -1:
             found_spot = True
             idx = count
     
@@ -198,10 +198,10 @@ def pop_indextoml_element(element: int, cfg: Config, type: str = "todos",) -> No
         type = "todos"
     
     with open(os.path.join(cfg.data_tree_dir, f"todos/index.toml"), "r") as index_toml:
-        indexes: list[int | str] = toml.loads(index_toml.read())['indexes']
+        indexes: list[int] = toml.loads(index_toml.read())['indexes']
         for count, idx in enumerate(indexes):
             if idx == element:
-                indexes[count] = "None"
+                indexes[count] = -1
     
     with open(os.path.join(cfg.data_tree_dir, f"todos/index.toml"), "w") as index_toml:
         index_toml.write(toml.dumps({
@@ -380,12 +380,15 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
             warn("A to-do entry with the same name exists. Aborting.") if not quiet else None
             return
         warn("A to-do entry with the same name already exists. Overwriting.") if not quiet else None
+    
+    if todo_entry.name == "index":
+        warn(f"Illegal name: {todo_entry.name}")
 
     todo_idx = (0, 0)
     if not use_old_index:
         # load the used indexes
         with open(os.path.join(cfg.data_tree_dir, "todos/index.toml")) as indexes:
-            idx: list[int | str] = toml.loads(indexes.read())['indexes']
+            idx: list[int] = toml.loads(indexes.read())['indexes']
         
         todo_idx = _fill_idx(idx)
 
@@ -418,7 +421,7 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
 
     return f"Registered New To-Do: \n{t}"
 
-def init(destroy: bool = False, verbose: bool = False) -> None:
+def init(destroy: bool = False, verbose: bool = True) -> None:
     """
     Create the necessary paths for the To-Dos and Events.
     """
@@ -579,9 +582,12 @@ def register_event(event_entry: EventEntry, cfg: Config, force: bool = False, qu
     will make the function "shut up".
     """
 
+    if event_entry.name == "index":
+        warn(f"Illegal name: {event_entry.name}")
+
     event_entry.name.replace(" ", "_")
 
-    if os.path.exists(os.path.join(cfg.data_tree_dir, f"{event_entry.name}.toml")):
+    if os.path.exists(os.path.join(cfg.data_tree_dir, f"events/{event_entry.name}.toml")):
         if not force:
             warn("An event entry with the same name exists, aborting.") if not quiet else None
             return ""

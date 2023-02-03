@@ -99,8 +99,9 @@ def parse_args(cfg: Config) -> None:
                         util.log(rv) if rv is not None else None
                                 
                     case "del":
-                        if len(sys.argv) <= 4:
+                        if len(sys.argv) < 4:
                             util.warn("Index of todo is required!")
+                            exit()
 
                         index = int(sys.argv[3])
                         if not util.del_todo(index, cfg):
@@ -242,7 +243,10 @@ def show(section: str = "all") -> None:
             for sc in sections:
                 print(sc.__repr__())
         case _:
-            print(cmp.match_name_with_component(section).__repr__())
+            try:
+                print(cmp.match_name_with_component(section).__repr__())
+            except NameError:
+                util.error(f"Section \"{section}\" not found!")
 
 
 # Main Function
