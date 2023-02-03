@@ -22,8 +22,20 @@ and more to come.
 This program is under the initial bring-up stage. Do not expect working code till this message goes away in the `README`!
 
 ## Currently Working on:
- * Initial Bring-up
+ * taking a GOOD rest
 
-## Planned Features:
- * [ ] Theming support
- * [ ] Markdown Parser
+## Planned Features (high priority):
+ * [ ] Transition from toml to json becuase toml is overkill
+ * [ ] add support for PyPy3.9 (maybe?)
+ * [ ] Refactor our code for the whow API
+ * [ ] get this on the PyPI
+ * [ ] OTA Update tool
+ * [ ] Daily Schedule
+ * [ ] Sorting To-Dos and events by time
+ * [ ] Document our code also for the whow API
+
+## Planned features (low priority):
+ * [ ] Reminders
+ * [ ] `whowd`, a daemon for whow using things like libnotify
+ * [ ] A reference implementation for an alternative frontend
+ * [ ] `curses` frontend to whow
