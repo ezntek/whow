@@ -22,6 +22,7 @@ import datetime
 import calendar
 import toml
 import os
+import typing
 
 # other imports
 import util
@@ -135,15 +136,14 @@ class Separator():
         self.length: int = self.cfg.separator_length if self.cfg.separator_length else 27
 
     def __repr__(self) -> str:
-        match self.cfg.default_separator:
-            case "line":
-                return util.sfprint("-"*self.length, flowtext=False)
-            case "equals":
-                return util.sfprint("="*self.length, flowtext=True)
-            case "tilde":
-                return util.sfprint("~"*self.length, flowtext=False)
-            case _:
-                return ""
+        if self.cfg.default_separator == "line":
+            return util.sfprint("-"*self.length, flowtext=False)
+        elif self.cfg.default_separator == "equals":
+            return util.sfprint("="*self.length, flowtext=True)
+        elif self.cfg.default_separator == "tilde":
+            return util.sfprint("~"*self.length, flowtext=False)
+        else:
+            return ""
 
 @dataclass
 class CalDate:
@@ -206,27 +206,24 @@ class Calendar():
         return retval
 
 # Function definitions
-def match_name_with_component(name: str, config: Config = Config()) -> (  DateDisplay          | EventsComponent
-                                                                        | ToDoComponent        | Separator
-                                                                        | Calendar):
+def match_name_with_component(name: str, config: Config = Config()) -> typing.Union[DateDisplay, EventsComponent, ToDoComponent, Separator, Calendar]:
     """
     Return a component class based on its name (str).
     """
-    match name.lower():
-        case "separator":
-            return Separator(config)
-        case "calendar":
-            return Calendar()
-        case "datetime":
-            return DateDisplay(config)
-        case "events":
-            return EventsComponent(config)
-        case "todos":
-            return ToDoComponent(config)
-        case _:
-            raise NameError(f"Section \"{name}\" not found!")
+    if name.lower() =="separator":
+        return Separator(config)
+    elif name.lower() =="calendar":
+        return Calendar()
+    elif name.lower() =="datetime":
+        return DateDisplay(config)
+    elif name.lower() =="events":
+        return EventsComponent(config)
+    elif name.lower() =="todos":
+        return ToDoComponent(config)
+    else:
+        raise NameError(f"Section \"{name}\" not found!")
     
-def build_component_list(config: Config) -> list[DateDisplay | EventsComponent | ToDoComponent | Separator | Calendar]:
+def build_component_list(config: Config) -> list[typing.Union[DateDisplay, EventsComponent, ToDoComponent, Separator, Calendar]]:
     """
     Return a list of components based on user's configuration.
     """

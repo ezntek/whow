@@ -1,7 +1,7 @@
 [name_of_todo]
 index = 0
 name = "name_of_todo"
-due = "6/9/420" #  Day/Month/Year
+due = 4206-09-01
 categories = [
     "categoryName1",
     "categoryName2"

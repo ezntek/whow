@@ -19,6 +19,7 @@
 # Imports
 import colorama
 
+import typing
 # Class Definitions
 
 # Color Classes
@@ -31,21 +32,20 @@ class Color:
     bg: str # Colorama Color
     name: str = "Color Base Class"
 
-    def colorprint(self, text: str, mode: str = "Fore", return_string: bool = False) -> str | None:
-        match mode:
-            case "Fore":
-                if return_string:
-                    return f"{self.fg}{text}{colorama.Fore.RESET}"
-                print(f"{self.fg}{text}{colorama.Fore.RESET}")
-            case "Back":
-                if return_string:
-                    return f"{self.bg}{text}{colorama.Back.RESET}"
-                print(f"{self.bg}{text}{colorama.Back.RESET}")
-            case _:
-                try:
-                    return self.colorprint(text, mode="Fore", return_string=return_string) # rerun function as fore
-                except RecursionError:
-                    print("Fatal: recursion error occured!")
+    def colorprint(self, text: str, mode: str = "Fore", return_string: bool = False) -> typing.Union[str, None]:
+        if mode == "Fore":
+            if return_string:
+                return f"{self.fg}{text}{colorama.Fore.RESET}"
+            print(f"{self.fg}{text}{colorama.Fore.RESET}")
+        elif mode == "Back":
+            if return_string:
+                return f"{self.bg}{text}{colorama.Back.RESET}"
+            print(f"{self.bg}{text}{colorama.Back.RESET}")
+        else:
+            try:
+                return self.colorprint(text, mode="Fore", return_string=return_string) # rerun function as fore
+            except RecursionError:
+                print("Fatal: recursion error occured!")
 
 class Black(Color):
     name = "Black"
@@ -119,22 +119,21 @@ def get_color_class_from_name(name: str) -> Color: # type: ignore
         Return the Color class, based on its name.
         """
 
-        match name.lower():
-            case "black":
-                return Black()
-            case "red":
-                return Red()
-            case "green":
-                return Green()
-            case "yellow":
-                return Yellow()
-            case "blue":
-                return Blue()
-            case "magenta":
-                return Magenta()
-            case "cyan":
-                return Cyan()
-            case "white":
-                return White()
-            case _:
-                return White()
+        if name.lower() == "black":
+            return Black()
+        elif name.lower() == "red":
+            return Red()
+        elif name.lower() == "green":
+            return Green()
+        elif name.lower() == "yellow":
+            return Yellow()
+        elif name.lower() == "blue":
+            return Blue()
+        elif name.lower() == "magenta":
+            return Magenta()
+        elif name.lower() == "cyan":
+            return Cyan()
+        elif name.lower() == "white":
+            return White()
+        else:
+            return White()

@@ -2,8 +2,8 @@
 index = 69
 name = "name_of_event"
 full_day = false
-event_from = "4/2/069 12:34:56" # Day/Month/Year hours:minutes:seconds
-event_to = "4/3/069 13:45:06" # can be "None"
+event_from = 1999-01-09T01:23:45
+event_to = 2000-01-01T02:34:56
 categories = ["Something", "SomethingElse"]
 description = """
 TheDescription.
