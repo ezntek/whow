@@ -25,8 +25,8 @@ Figure it out yourself. We are exhausted, proper docs will come in a later versi
  * Use TOML dates instead of string dates
 
 ## Planned Features (high priority):
- * [ ] Use TOML dates instead of string dates
- * [ ] add support for PyPy3.9 (maybe)
+ * [x] Use TOML dates instead of string dates
+ * [x] add support for PyPy3.9 (maybe)
  * [ ] Refactor code for the whow API
  * [ ] Schedule Feature
  * [ ] get this on the PyPI
