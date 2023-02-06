@@ -26,7 +26,39 @@ import typing
 from dataclasses import dataclass
 from colors import Color, Colors, Styles, get_color_class_from_name
 from config import Config
-from exceptions import *
+
+# Exceptions
+
+class InvalidMonthNameError(Exception):
+    """
+    Complains about an invalid month name.
+    """
+    
+    def __init__(self) -> None:
+        "Constructs the invalid month name complaint."
+
+        error("Invalid Month Name - It has to be any one of Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, or Dec.")
+        exit(1)
+
+class DateFormattingError(Exception):
+    """
+    Complains about a date formatting error.
+    """
+   
+    def __init__(self) -> None:
+        "Constructs the date formatting complaint."
+
+        error("Invalid Date Formatting - the date must be formatted in either the mm/dd/YYYY, YYYY/mm/dd, or Month day, Year format.")
+        exit(1)
+
+class FatalError(Exception):
+    """
+    Creates a fatal error.
+    """
+
+    def __init__(self, text: str) -> None:
+        error(text)
+        exit(1)
 
 # class definitions
 @dataclass
@@ -63,6 +95,18 @@ class EventEntry():
     index: int = 0
 
 # Function Definitions
+
+# Utility Functions
+
+def log(text: str, return_string: bool = False) -> typing.Union[str, None]:
+    return f"{Styles.bold}{Colors.yellow().colorprint('[>>]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.yellow().colorprint('[>>]', return_string=True)}{Styles.end} {text}")
+
+def error(text: str, return_string: bool = False) -> typing.Union[str, None]:
+    return f"{Styles.bold}{Colors.red().colorprint('[!!]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.red().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
+
+def warn(text: str, return_string: bool = False) -> typing.Union[str, None]:
+    return f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
+
 def clean_empty_strings_in_list(l: list[str]) -> list[str]:
     for count, element in enumerate(l):
         l.pop(count) if element == "" else None
@@ -135,122 +179,7 @@ def parse_category_from_name(s: str, cfg: Config = Config()) -> Category:
             )
     raise NameError("The category name was not found! perhaps you did not add it yet?")
 
-def parse_todoentry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.date, bool, list[dict[str, str]]]]], file_name: str) -> ToDoEntry:
-    """
-    Parse a dictionary that was parsed from a `ToDoEntry` into a `ToDoEntry`.
-    `file_name` should be the name of the file WITHOUT the extension.
-    """
-
-    return ToDoEntry(
-        str(d[file_name]["name"]).replace("_", " "),
-        d[file_name]["due"], #type: ignore
-        [parse_category_from_name(c) for c in d[file_name]["categories"]], # type: ignore
-        overdue=True if (type(d[file_name]["overdue"]) == bool and d[file_name]["overdue"]) or (datetime.datetime.now().date() > d[file_name]["due"]) else False, #type: ignore
-        ticked=d[file_name]["ticked"], # type: ignore
-        index=d[file_name]["index"] # type: ignore
-    )
-    
-def _fill_idx(l: list[int]) -> tuple[list[int], int]:
-    """
-    fill an index.toml indexes list.
-    This function is to bypass the use
-    of a for-else clause, which is
-    deprecated.
-    """
-    retval: list[int] = []
-    idx = 0
-    found_spot = False
-
-    for count, i in enumerate(l):
-        retval.append(count)
-        #print(f"appended {count}, {i} at {count}")
-        if i == -1:
-            found_spot = True
-            idx = count
-    
-    if not found_spot:
-        retval.append(len(retval))
-        idx = len(retval) - 1
-     
-    return (retval, idx)
-
-def pop_indextoml_element(element: int, cfg: Config, type: str = "todos",) -> None:
-    """
-    Remove an entry from an index.toml.
-    Valid values for `type: str` include `"todos"` and `"events"`.
-    """
-
-    if type != "todos" and type != "events":
-        type = "todos"
-    
-    with open(os.path.join(cfg.data_tree_dir, f"todos/index.toml"), "r") as index_toml:
-        indexes: list[int] = toml.loads(index_toml.read())['indexes']
-        for count, idx in enumerate(indexes):
-            if idx == element:
-                indexes[count] = -1
-    
-    with open(os.path.join(cfg.data_tree_dir, f"todos/index.toml"), "w") as index_toml:
-        index_toml.write(toml.dumps({
-            "indexes": indexes
-        }))
-
-def match_todo_index(index: int, cfg: Config) -> str:
-    """
-    Find a to-do filename based on its index.
-    """
-
-    BASEDIR = os.path.join((cfg.data_tree_dir), f"todos")
-    for filename in os.listdir(BASEDIR):
-        if filename == "index.toml":
-            continue
-        data = toml.load(os.path.join(BASEDIR, filename))
-        todo_name = os.path.splitext(filename.replace("_", " "))[0]
-
-        if index == data[todo_name]["index"]:
-            return filename
-    raise IndexError('No file with this to-do index exists! Perhaps the index.toml is corrupted?')
-
-def del_todo(index: int, cfg: Config) -> str:
-    """
-    Delete a to-do by its index.
-    """
-    
-    try:
-        filename = match_todo_index(index, cfg)
-    except IndexError:
-        error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
-        return ""
-        
-    BASEDIR = os.path.join((cfg.data_tree_dir), f"todos")
-    todo_name = os.path.splitext(filename.replace("_", " "))[0]
-    todo = parse_todoentry_from_dict(toml.load(os.path.join(BASEDIR, filename)), os.path.splitext(filename)[0].replace("_", " "))
-    
-    if index == todo.index:
-        os.remove(os.path.join(BASEDIR, filename))
-        pop_indextoml_element(index, cfg)
-        return f"Deleted to-do: {todo_name}\n"
-    return ""
-
-def mark_todo(index: int, cfg: Config) -> str:
-    """
-    Tick a to-do as done/undone.
-    """
-
-    try:
-        filename = match_todo_index(index, cfg)
-    except IndexError:
-        error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
-        return ""
-
-    data = toml.load(os.path.join((cfg.data_tree_dir), f'todos', filename))
-    todo_name = os.path.splitext(filename.replace("_", " "))[0]
-    todo = parse_todoentry_from_dict(data, todo_name)
-    
-    todo.ticked = not todo.ticked
-    register_todo(todo, cfg, force=True, quiet=True, use_old_index=True)
-    
-    return f"Marked to-do: {filename} as {not todo.ticked}\n" 
-
+# Datetime Handling
 def unify_date_formats(string: str) -> str:
     # The time format stays uniform, whereas
     # there are multiple supported date formats,
@@ -333,6 +262,201 @@ def parse_argv_event_datetime(string: str) -> datetime.datetime:
 
     return datetime.datetime(int(date_part_list[2]), int(date_part_list[1]), int(date_part_list[0]), time_part.hour, time_part.minute, time_part.second)
 
+def split_string_date(string_date: str) -> datetime.date:
+    """
+    Split a string date in the date/month/year format into a datetime.date object.
+    """
+    string_date_array = string_date.split("/")
+
+    if not string_date:
+        return datetime.date(1, 1, 1)
+
+    if (int(string_date_array[0]) > 31) or (int(string_date_array[1]) > 12):
+        raise FatalError("The date you supplied was invalid!")
+    
+    return datetime.date(int(string_date_array[2]), int(string_date_array[1]), int(string_date_array[0]))
+
+# THE init function
+
+def init(destroy: bool = False, verbose: bool = True) -> None:
+    """
+    Create the necessary paths for the To-Dos and Events.
+    """
+    cfg = Config() # no existing config exists yet
+    
+    log("Reconfiguring Whow...") if verbose else None
+
+    if destroy:
+        warn(f"Overwriting {cfg.config_tree_dir} and {cfg.data_tree_dir}...")
+        try:
+            shutil.rmtree(cfg.config_tree_dir)
+            shutil.rmtree(cfg.data_tree_dir)
+        except FileNotFoundError:
+            pass
+
+    # create dirs
+    dirs = [
+        cfg.data_tree_dir,
+        os.path.join(os.environ['HOME'], "./.config/whow")
+    ]
+
+    tree_dirs = [
+            "todos",
+            "categories",
+            "events",
+    ]
+
+    for dir in dirs:
+        if not os.path.isdir(dir):
+            log(f"Created directory {dir}.") if verbose else None
+            os.mkdir(dir)
+
+    for dir in tree_dirs:
+        if not os.path.isdir(os.path.join(cfg.data_tree_dir, dir)):
+            log(f"Created directory {dir}.") if verbose else None
+            os.mkdir(os.path.join(cfg.data_tree_dir, dir))
+    
+    indextoml_tmp = toml.dumps(
+        {
+            "indexes": [] # type: ignore
+        }
+    )
+
+    # write the index.toml's
+    todos_indextoml = open(os.path.join(cfg.data_tree_dir, 'todos/index.toml'), "w+")
+    events_indextoml = open(os.path.join(cfg.data_tree_dir, 'events/index.toml'), "w+") 
+    todos_indextoml.write(indextoml_tmp)
+    events_indextoml.write(indextoml_tmp)
+
+    todos_indextoml.close()
+    events_indextoml.close()
+
+    # create the default config.toml
+    log("Writing configuration file...") if verbose else None
+    cfg.write_cfg(quiet=True)
+    
+    # create a new important category
+    log("Registering important category...") if verbose else None
+    register_category(Category("important", Colors.red()), cfg, force=True)
+
+# To-Dos
+def _fill_idx(l: list[int]) -> tuple[list[int], int]:
+    """
+    fill an index.toml indexes list.
+    This function is to bypass the use
+    of a for-else clause, which is
+    deprecated.
+    """
+    retval: list[int] = []
+    idx = 0
+    found_spot = False
+
+    for count, i in enumerate(l):
+        retval.append(count)
+        #print(f"appended {count}, {i} at {count}")
+        if i == -1:
+            found_spot = True
+            idx = count
+    
+    if not found_spot:
+        retval.append(len(retval))
+        idx = len(retval) - 1
+     
+    return (retval, idx)
+
+def parse_todoentry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.date, bool, list[dict[str, str]]]]], file_name: str) -> ToDoEntry:
+    """
+    Parse a dictionary that was parsed from a `ToDoEntry` into a `ToDoEntry`.
+    `file_name` should be the name of the file WITHOUT the extension.
+    """
+
+    return ToDoEntry(
+        str(d[file_name]["name"]).replace("_", " "),
+        d[file_name]["due"], #type: ignore
+        [parse_category_from_name(c) for c in d[file_name]["categories"]], # type: ignore
+        overdue=True if (type(d[file_name]["overdue"]) == bool and d[file_name]["overdue"]) or (datetime.datetime.now().date() > d[file_name]["due"]) else False, #type: ignore
+        ticked=d[file_name]["ticked"], # type: ignore
+        index=d[file_name]["index"] # type: ignore
+    )
+
+
+def pop_indextoml_element(element: int, cfg: Config, type: str = "todos",) -> None:
+    """
+    Remove an entry from an index.toml.
+    Valid values for `type: str` include `"todos"` and `"events"`.
+    """
+
+    if type != "todos" and type != "events":
+        type = "todos"
+    
+    with open(os.path.join(cfg.data_tree_dir, f"todos/index.toml"), "r") as index_toml:
+        indexes: list[int] = toml.loads(index_toml.read())['indexes']
+        for count, idx in enumerate(indexes):
+            if idx == element:
+                indexes[count] = -1
+    
+    with open(os.path.join(cfg.data_tree_dir, f"todos/index.toml"), "w") as index_toml:
+        index_toml.write(toml.dumps({
+            "indexes": indexes
+        }))
+
+def match_todo_index(index: int, cfg: Config) -> str:
+    """
+    Find a to-do filename based on its index.
+    """
+
+    BASEDIR = os.path.join((cfg.data_tree_dir), f"todos")
+    for filename in os.listdir(BASEDIR):
+        if filename == "index.toml":
+            continue
+        data = toml.load(os.path.join(BASEDIR, filename))
+        todo_name = os.path.splitext(filename.replace("_", " "))[0]
+
+        if index == data[todo_name]["index"]:
+            return filename
+    raise IndexError('No file with this to-do index exists! Perhaps the index.toml is corrupted?')
+
+def del_todo(index: int, cfg: Config) -> str:
+    """
+    Delete a to-do by its index.
+    """
+    
+    try:
+        filename = match_todo_index(index, cfg)
+    except IndexError:
+        error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
+        return ""
+        
+    BASEDIR = os.path.join((cfg.data_tree_dir), f"todos")
+    todo_name = os.path.splitext(filename.replace("_", " "))[0]
+    todo = parse_todoentry_from_dict(toml.load(os.path.join(BASEDIR, filename)), os.path.splitext(filename)[0].replace("_", " "))
+    
+    if index == todo.index:
+        os.remove(os.path.join(BASEDIR, filename))
+        pop_indextoml_element(index, cfg)
+        return f"Deleted to-do: {todo_name}\n"
+    return ""
+
+def mark_todo(index: int, cfg: Config) -> str:
+    """
+    Tick a to-do as done/undone.
+    """
+
+    try:
+        filename = match_todo_index(index, cfg)
+    except IndexError:
+        error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
+        return ""
+
+    data = toml.load(os.path.join((cfg.data_tree_dir), f'todos', filename))
+    todo_name = os.path.splitext(filename.replace("_", " "))[0]
+    todo = parse_todoentry_from_dict(data, todo_name)
+    
+    todo.ticked = not todo.ticked
+    register_todo(todo, cfg, force=True, quiet=True, use_old_index=True)
+    
+    return f"Marked to-do: {filename} as {not todo.ticked}\n" 
+
 def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet: bool = False, use_old_index: bool = False) -> typing.Union[str, None]:
     """
     Register a new To-Do.
@@ -406,81 +530,7 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
 
     return f"Registered New To-Do: \n{t}"
 
-def init(destroy: bool = False, verbose: bool = True) -> None:
-    """
-    Create the necessary paths for the To-Dos and Events.
-    """
-    cfg = Config() # no existing config exists yet
-    
-    log("Reconfiguring Whow...") if verbose else None
-
-    if destroy:
-        warn(f"Overwriting {cfg.config_tree_dir} and {cfg.data_tree_dir}...")
-        try:
-            shutil.rmtree(cfg.config_tree_dir)
-            shutil.rmtree(cfg.data_tree_dir)
-        except FileNotFoundError:
-            pass
-
-    # create dirs
-    dirs = [
-        cfg.data_tree_dir,
-        os.path.join(os.environ['HOME'], "./.config/whow")
-    ]
-
-    tree_dirs = [
-            "todos",
-            "categories",
-            "events",
-    ]
-
-    for dir in dirs:
-        if not os.path.isdir(dir):
-            log(f"Created directory {dir}.") if verbose else None
-            os.mkdir(dir)
-
-    for dir in tree_dirs:
-        if not os.path.isdir(os.path.join(cfg.data_tree_dir, dir)):
-            log(f"Created directory {dir}.") if verbose else None
-            os.mkdir(os.path.join(cfg.data_tree_dir, dir))
-    
-    indextoml_tmp = toml.dumps(
-        {
-            "indexes": [] # type: ignore
-        }
-    )
-
-    # write the index.toml's
-    todos_indextoml = open(os.path.join(cfg.data_tree_dir, 'todos/index.toml'), "w+")
-    events_indextoml = open(os.path.join(cfg.data_tree_dir, 'events/index.toml'), "w+") 
-    todos_indextoml.write(indextoml_tmp)
-    events_indextoml.write(indextoml_tmp)
-
-    todos_indextoml.close()
-    events_indextoml.close()
-
-    # create the default config.toml
-    log("Writing configuration file...") if verbose else None
-    cfg.write_cfg(quiet=True)
-    
-    # create a new important category
-    log("Registering important category...") if verbose else None
-    register_category(Category("important", Colors.red()), cfg, force=True)
-
-def split_string_date(string_date: str) -> datetime.date:
-    """
-    Split a string date in the date/month/year format into a datetime.date object.
-    """
-    string_date_array = string_date.split("/")
-
-    if not string_date:
-        return datetime.date(1, 1, 1)
-
-    if (int(string_date_array[0]) > 31) or (int(string_date_array[1]) > 12):
-        raise FatalError("The date you supplied was invalid!")
-    
-    return datetime.date(int(string_date_array[2]), int(string_date_array[1]), int(string_date_array[0]))
-
+# Categories
 def check_category_existence(name: str, cfg: Config) -> bool:
     """
     Check for the existence of a given category by searching through the category directory.
@@ -535,7 +585,6 @@ def register_category(category: Category, cfg: Config, force: bool = False, quie
 
     return f"Wrote a new category toml. \n{t}" if not quiet else None
 
-
 def del_category(name: str, cfg: Config) -> str:
     """
     Delete a category by its name.
@@ -549,6 +598,28 @@ def del_category(name: str, cfg: Config) -> str:
         error("A category with this name does not exist! please re-evaluate your input.")
     return ""
 
+def parse_category_from_dict(d: dict[str, str]) -> Category:
+    """
+    Parse a category that was parsed from a `Category` into a `Category`.
+    """
+    return Category(
+        d["name"],
+        get_color_class_from_name(d["color"].lower())
+    )
+
+def list_categories(cfg: Config) -> None:
+    """
+    List all categories.
+    """
+    
+    for path in os.listdir(os.path.join(cfg.data_tree_dir, "categories")):
+        try:
+            print(parse_category_from_dict(toml.load(os.path.join(cfg.data_tree_dir, "categories", path))))
+        except KeyError or TypeError:
+            warn(f"The category file {path} in the folder is corrupted!")
+
+
+# Events
 def register_event(event_entry: EventEntry, cfg: Config, force: bool = False, quiet: bool = False) -> str:
     """
     Register a new event.  
@@ -653,23 +724,3 @@ def del_event(index: int, cfg: Config) -> str:
         pop_indextoml_element(index, cfg, type = "events")
         return f"deleted event: {event_name}"
     return "" 
-
-def parse_category_from_dict(d: dict[str, str]) -> Category:
-    """
-    Parse a category that was parsed from a `Category` into a `Category`.
-    """
-    return Category(
-        d["name"],
-        get_color_class_from_name(d["color"].lower())
-    )
-
-def list_categories(cfg: Config) -> None:
-    """
-    List all categories.
-    """
-    
-    for path in os.listdir(os.path.join(cfg.data_tree_dir, "categories")):
-        try:
-            print(parse_category_from_dict(toml.load(os.path.join(cfg.data_tree_dir, "categories", path))))
-        except KeyError or TypeError:
-            warn(f"The category file {path} in the folder is corrupted!")
