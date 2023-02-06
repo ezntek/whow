@@ -17,16 +17,17 @@
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
 
 from colors import Styles, Colors
+import typing
 
 # function definitions
 
-def log(text: str, return_string: bool = False) -> None | str:
+def log(text: str, return_string: bool = False) -> typing.Union[str, None]:
     return f"{Styles.bold}{Colors.yellow().colorprint('[>>]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.yellow().colorprint('[>>]', return_string=True)}{Styles.end} {text}")
 
-def error(text: str, return_string: bool = False) -> None | str:
+def error(text: str, return_string: bool = False) -> typing.Union[str, None]:
     return f"{Styles.bold}{Colors.red().colorprint('[!!]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.red().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
 
-def warn(text: str, return_string: bool = False) -> None | str:
+def warn(text: str, return_string: bool = False) -> typing.Union[str, None]:
     return f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}" if return_string else print(f"{Styles.bold}{Colors.magenta().colorprint('[!!]', return_string=True)}{Styles.end} {text}")
 
 # class definitions

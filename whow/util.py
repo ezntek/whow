@@ -22,21 +22,13 @@ import os
 import shutil
 import math
 
+import typing
 from dataclasses import dataclass
 from colors import Color, Colors, Styles, get_color_class_from_name
 from config import Config
 from exceptions import *
 
 # class definitions
-
-@dataclass
-class EventDateTime():
-    date: datetime.date = datetime.datetime.now().date()
-    time: datetime.time = datetime.datetime.now().time()
-
-    def __repr__(self) -> str:
-        return f"{self.date.day}/{self.date.month}/{self.date.year} {self.time.hour}:{self.time.minute}:{self.time.second}"
-
 @dataclass
 class Category():
     name: str
@@ -54,7 +46,7 @@ class Category():
 @dataclass
 class ToDoEntry():
     name: str
-    due: datetime.date | None
+    due: typing.Union[datetime.date, None]
     categories: list[Category]
     overdue: bool = False
     ticked: bool = False
@@ -63,8 +55,8 @@ class ToDoEntry():
 @dataclass
 class EventEntry():
     name: str
-    event_from: EventDateTime
-    event_to: EventDateTime | None
+    event_from: datetime.datetime
+    event_to: typing.Union[datetime.date, None]
     description: str
     categories: list[Category]
     full_day: bool = False
@@ -82,13 +74,9 @@ def indexify_weekday(weekday: int) -> int:
     from *.weekday() to 0==Sunday, 6==Saturday dates
     """
 
-    match weekday:
-        case 6:
-            return 0
-        case _:
-            return weekday+1
+    return 0 if weekday == 6 else weekday+1
 
-def emoji(emoji: str, cfg: Config = Config()) -> str | None:
+def emoji(emoji: str, cfg: Config = Config()) -> typing.Union[str, None]:
     """
     Print out an emoji if `enable_emojis` is set to true on the configuration.
     """
@@ -107,7 +95,7 @@ def sfprint(string: str, padding: int = 0, flowtext: bool = True) -> str:
 
     return(f"{text_padding}{string[0:term_width]}{overflow}")
 
-def print_center(string: str, width: int, bias_left: bool = True, return_string: bool = False) -> None | str:
+def print_center(string: str, width: int, bias_left: bool = True, return_string: bool = False) -> typing.Union[str, None]:
     """
     Center out a string in a given area (width: int)
     and print that string in the center of that area.
@@ -147,19 +135,17 @@ def parse_category_from_name(s: str, cfg: Config = Config()) -> Category:
             )
     raise NameError("The category name was not found! perhaps you did not add it yet?")
 
-def parse_todoentry_from_dict(d: dict[str, dict[str, str | bool | list[dict[str, str]]]], file_name: str) -> ToDoEntry:
+def parse_todoentry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.date, bool, list[dict[str, str]]]]], file_name: str) -> ToDoEntry:
     """
     Parse a dictionary that was parsed from a `ToDoEntry` into a `ToDoEntry`.
     `file_name` should be the name of the file WITHOUT the extension.
     """
 
-    unparsed_due = str(d[file_name]["due"]).split("/")
-    due = datetime.date(int(unparsed_due[2]), int(unparsed_due[1]), int(unparsed_due[0]))
     return ToDoEntry(
         str(d[file_name]["name"]).replace("_", " "),
-        due,
+        d[file_name]["due"], #type: ignore
         [parse_category_from_name(c) for c in d[file_name]["categories"]], # type: ignore
-        overdue=True if (type(d[file_name]["overdue"]) == bool and d[file_name]["overdue"]) or (datetime.datetime.now().date() > due) else False,
+        overdue=True if (type(d[file_name]["overdue"]) == bool and d[file_name]["overdue"]) or (datetime.datetime.now().date() > d[file_name]["due"]) else False, #type: ignore
         ticked=d[file_name]["ticked"], # type: ignore
         index=d[file_name]["index"] # type: ignore
     )
@@ -315,7 +301,7 @@ def unify_date_formats(string: str) -> str:
 
     raise DateFormattingError()
 
-def parse_argv_event_datetime(string: str) -> EventDateTime:
+def parse_argv_event_datetime(string: str) -> datetime.datetime:
     # either:
     #   "mm/dd/YYYY 6:09:34 PM" | "mm/dd/YYYY 6:09PM"
     # or:
@@ -343,12 +329,11 @@ def parse_argv_event_datetime(string: str) -> EventDateTime:
     if twelve_hour_time:
         time_part_list[0] = str(int(time_part_list[0]) + 12) if afternoon_time else time_part_list[0]
 
-    date_part = datetime.date(int(date_part_list[2]), int(date_part_list[1]), int(date_part_list[0]))
     time_part = datetime.time(int(time_part_list[0]), int(time_part_list[1]), int(time_part_list[2])) if len(time_part_list) == 3 else datetime.time(int(time_part_list[0]), int(time_part_list[1]), 0)
 
-    return EventDateTime(date_part, time_part)
+    return datetime.datetime(int(date_part_list[2]), int(date_part_list[1]), int(date_part_list[0]), time_part.hour, time_part.minute, time_part.second)
 
-def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet: bool = False, use_old_index: bool = False) -> str | None:
+def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet: bool = False, use_old_index: bool = False) -> typing.Union[str, None]:
     """
     Register a new To-Do.
     
@@ -408,9 +393,9 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
                 todo_entry.name: {
                     "index": todo_idx[1] if not use_old_index else todo_entry.index,
                     "name": todo_entry.name,
-                    "due": f"{todo_entry.due.day}/{todo_entry.due.month}/{todo_entry.due.year}"
+                    "due": todo_entry_due
                            if todo_entry.due is not None else
-                           f"{datetime.datetime.now().day}/{datetime.datetime.now().month}/{datetime.datetime.now().year}",
+                           datetime.datetime.now().date(),
                     "categories": [c.name for c in todo_entry.categories],
                     "overdue": False if datetime.datetime.now().date() < todo_entry_due else True,
                     "ticked": todo_entry.ticked
@@ -492,8 +477,7 @@ def split_string_date(string_date: str) -> datetime.date:
         return datetime.date(1, 1, 1)
 
     if (int(string_date_array[0]) > 31) or (int(string_date_array[1]) > 12):
-        error("The date you supplied was invalid! It has to follow the date/month/year format.")
-        exit()
+        raise FatalError("The date you supplied was invalid!")
     
     return datetime.date(int(string_date_array[2]), int(string_date_array[1]), int(string_date_array[0]))
 
@@ -532,7 +516,7 @@ def match_category_name_with_filename(name: str, cfg: Config) -> str:
 
     raise NameError("No category found with name!")
 
-def register_category(category: Category, cfg: Config, force: bool = False, quiet: bool = False) -> str | None:
+def register_category(category: Category, cfg: Config, force: bool = False, quiet: bool = False) -> typing.Union[str, None]:
     """
     Register a new category.
     """
@@ -617,7 +601,7 @@ def register_event(event_entry: EventEntry, cfg: Config, force: bool = False, qu
     
     return f"Registered New Event: \n{t}"
 
-def parse_evententry_from_dict(d: dict[str, dict[str, str | bool | list[str | int]]], file_name: str) -> EventEntry:
+def parse_evententry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.datetime , bool , list[typing.Union[str, int]]]]], file_name: str) -> EventEntry:
     """
     Parse a dictionary that was parsed from an `EventEntry` into an `EventEntry`.
     `file_name` should be the name of the file WITHOUT the extension
@@ -625,8 +609,8 @@ def parse_evententry_from_dict(d: dict[str, dict[str, str | bool | list[str | in
 
     return EventEntry(
         str(d[file_name]["name"]).replace(" ", "_"),
-        parse_argv_event_datetime(str(d[file_name]["event_from"])),
-        parse_argv_event_datetime(str(d[file_name]["event_to"])) if d[file_name]["event_to"] != "None" else None,
+        d[file_name]["event_from"], # type: ignore
+        d[file_name]["event_to"] if d[file_name]["event_to"] != "None" else None, # type: ignore
         str(d[file_name]["description"]),
         [parse_category_from_name(c) for c in d[file_name]["categories"]], # type: ignore
         full_day=True if d[file_name]["event_to"] != "None" else False

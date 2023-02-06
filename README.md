@@ -20,12 +20,16 @@ and more to come.
 Figure it out yourself. We are exhausted, proper docs will come in a later version, just you wait.
 
 ## Currently Working on:
- * taking a GOOD rest
+
+ * Python 3.9 support (for PyPy's sake)
+ * Code refactoring
+ * Use TOML dates instead of string dates
 
 ## Planned Features (high priority):
- * [ ] Transition from toml to json becuase toml is overkill
- * [ ] add support for PyPy3.9 (maybe?)
- * [ ] Refactor our code for the whow API
+ * [x] Use TOML dates instead of string dates
+ * [x] add support for PyPy3.9 (maybe)
+ * [ ] Refactor code for the whow API
+ * [ ] Schedule Feature
  * [ ] get this on the PyPI
  * [ ] OTA Update tool
  * [ ] Daily Schedule
