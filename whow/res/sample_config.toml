@@ -1,8 +1,8 @@
 [config]
-default_separator = "line"
-separator_length = 27
-enable_emojis = true
-time_format = 12
-data_tree_path = "$HOME/.local/whow/"
-config_tree_path = "$HOME/.config/whow"
-sections = [ "separator", "datetime", "separator", "calendar", "separator", "todos", "separator", "events", "separator", "schedule" ]
+    default_separator = "line"
+    separator_length = 27
+    enable_emojis = true
+    time_format = 12
+    data_tree_path = "$HOME/.local/whow/"
+    config_tree_path = "$HOME/.config/whow"
+    sections = [ "separator", "datetime", "separator", "calendar", "separator", "todos", "separator", "events", "separator", "schedule" ]

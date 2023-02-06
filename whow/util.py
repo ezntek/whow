@@ -94,6 +94,17 @@ class EventEntry():
     full_day: bool = False
     index: int = 0
 
+@dataclass
+class ScheduleDay():
+    begin: datetime.time
+    end: typing.Union[datetime.time, None]
+    label: str
+    categories: list[Category]
+class Schedule():
+    def __init__(self, anchor_date: datetime.date, *schedule_days: list[ScheduleDay]) -> None:
+        self.anchor_date = anchor_date
+
+
 # Function Definitions
 
 # Utility Functions
