@@ -20,6 +20,7 @@ and more to come.
 Figure it out yourself. We are exhausted, proper docs will come in a later version, just you wait.
 
 ## Currently Working on:
+
  * Python 3.9 support (for PyPy's sake)
  * Code refactoring
  * Use TOML dates instead of string dates
