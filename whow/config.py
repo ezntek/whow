@@ -89,3 +89,8 @@ class Config():
             print(f"{colors.Styles.bold}{colors.Colors.magenta().colorprint('[!!]')}{colors.Styles.end}Configuration already exists. Overwriting.") if not quiet else None
         with open(CONFPATH, "w") as conffile:
             toml.dump(self.get_dict(), conffile) # type: ignore
+
+    def nuke_cfg(self, quiet: bool = False) -> None:
+        "Nuke the configuration file. Highly destructive."
+
+        os.remove(os.path.join(self.config_tree_dir, "config.toml"))
