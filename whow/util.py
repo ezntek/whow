@@ -756,5 +756,12 @@ def new_schedule_day(day_of_week: str = "mon", *schedule_entries: list[ScheduleE
         raise FatalError(f"the day of the week \"{day_of_week}\" is not a valid day of the week!")
     return (day_of_week, [get_schedule_entry_dict(entry) for entry in schedule_entries]) # type: ignore
 
-def build_schedule_tree(anchor_date: datetime.date, **schedule_days: dict[str, dict[str, typing.Union[datetime.time, str, list[str]]]]) -> dict[str, typing.Union[datetime.date, dict[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]]]]:
-    return {}
+def build_schedule_tree(anchor_date: datetime.date, repeats: list[str] = [], **schedule_days: dict[str, dict[str, typing.Union[datetime.date, str, list[str]]]]) -> dict[str, typing.Union[datetime.date, dict[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]]]]:
+    VALID_DAYS_OF_WEEK = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    return {
+        "schedule": {
+            "anchor_date": anchor_date,
+            "repeats": [r for r in repeats if r in VALID_DAYS_OF_WEEK],
+            
+        }
+    }
