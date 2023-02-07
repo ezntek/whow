@@ -95,18 +95,23 @@ class EventEntry():
     index: int = 0
 
 @dataclass
-class ScheduleDay():
+class ScheduleEntry():
     begin: datetime.time
     end: typing.Union[datetime.time, None]
     label: str
     categories: list[Category]
-class Schedule():
-    def __init__(self, anchor_date: datetime.date, *schedule_days: list[ScheduleDay]) -> None:
-        self.anchor_date = anchor_date
 
+@dataclass
+class ScheduleDay():
+    entries: list[ScheduleEntry]
+    repeat: bool
+
+class Schedule():
+    def __init__(self, anchor_date: datetime.date, **schedule_days: dict[str, ScheduleDay]) -> None:
+        self.anchor_date = anchor_date
+        self.schedule_days = schedule_days
 
 # Function Definitions
-
 # Utility Functions
 
 def log(text: str, return_string: bool = False) -> typing.Union[str, None]:
@@ -300,6 +305,7 @@ def init(destroy: bool = False, verbose: bool = True) -> None:
     if destroy:
         warn(f"Overwriting {cfg.config_tree_dir} and {cfg.data_tree_dir}...")
         try:
+            cfg.nuke_cfg()
             shutil.rmtree(cfg.config_tree_dir)
             shutil.rmtree(cfg.data_tree_dir)
         except FileNotFoundError:
@@ -380,7 +386,6 @@ def parse_todoentry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.
     Parse a dictionary that was parsed from a `ToDoEntry` into a `ToDoEntry`.
     `file_name` should be the name of the file WITHOUT the extension.
     """
-
     return ToDoEntry(
         str(d[file_name]["name"]).replace("_", " "),
         d[file_name]["due"], #type: ignore
@@ -735,3 +740,21 @@ def del_event(index: int, cfg: Config) -> str:
         pop_indextoml_element(index, cfg, type = "events")
         return f"deleted event: {event_name}"
     return "" 
+
+# Schedule
+def get_schedule_entry_dict(schedule_entry: ScheduleEntry) -> dict[str, typing.Union[datetime.time, str, list[str]]]:
+    return {
+        "begin": schedule_entry.begin,
+        "end": schedule_entry.end if schedule_entry.end is not None else "",
+        "label": schedule_entry.label,
+        "categories": [c.name for c in schedule_entry.categories],
+    }
+
+def new_schedule_day(day_of_week: str = "mon", *schedule_entries: list[ScheduleEntry]) -> tuple[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]]:
+    VALID_DAYS_OF_WEEK = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    if day_of_week not in VALID_DAYS_OF_WEEK:
+        raise FatalError(f"the day of the week \"{day_of_week}\" is not a valid day of the week!")
+    return (day_of_week, [get_schedule_entry_dict(entry) for entry in schedule_entries]) # type: ignore
+
+def build_schedule_tree(anchor_date: datetime.date, **schedule_days: dict[str, dict[str, typing.Union[datetime.time, str, list[str]]]]) -> dict[str, typing.Union[datetime.date, dict[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]]]]:
+    return {}

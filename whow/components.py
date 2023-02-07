@@ -93,7 +93,7 @@ class ToDoComponent():
         else:
             retval += util.sfprint("There aren't any important to-dos.\n", padding=1)
         
-        retval += util.sfprint(f"\n{Styles.bold}{util.emoji('✅ ')}To-Do's{Styles.end} \n\n", padding=1)
+        retval += util.sfprint(f"\n{Styles.bold}{util.emoji(' ✅ ')}To-Do's{Styles.end} \n\n", padding=1)
         
         if self.todos:
             for todo in self.todos:
@@ -189,7 +189,6 @@ class Calendar():
                 print(f"{Styles.bold}{day}{Styles.end}") # print the \n on the last line
             else:
                 print(f"{Styles.bold}{day}{Styles.end} ", end="") # dont print the \n
-
 
         # print the dates
         retval = ""
