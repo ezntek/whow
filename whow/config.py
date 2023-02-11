@@ -90,7 +90,6 @@ class Config():
         with open(CONFPATH, "w") as conffile:
             toml.dump(self.get_dict(), conffile) # type: ignore
 
-    def nuke_cfg(self, quiet: bool = False) -> None:
+    def nuke_cfg(self) -> None:
         "Nuke the configuration file. Highly destructive."
-
         os.remove(os.path.join(self.config_tree_dir, "config.toml"))

@@ -101,8 +101,16 @@ class ScheduleEntry():
     label: str
     categories: list[Category]
 
+    def to_dict(self) -> dict[str, typing.Union[datetime.time, str, list[str]]]:
+        return {
+            "begin": self.begin,
+            "end": self.end if self.end is not None else "",
+            "label": self.label,
+            "categories": [c.name for c in self.categories]
+        }
 @dataclass
 class ScheduleDay():
+    day_of_week: str
     entries: list[ScheduleEntry]
     repeat: bool
 
@@ -179,21 +187,6 @@ def print_center(string: str, width: int, bias_left: bool = True, return_string:
         if return_string:
             return f"{' '*int(padding_width/2)}{string}{' '*int(padding_width/2)}"
         print(f"{' '*int(padding_width/2)}{string}{''*int(padding_width/2)}")
-
-def parse_category_from_name(s: str, cfg: Config = Config()) -> Category:
-    """
-    Parse a dictionary that was parsed from a `Category` back into a `Category`.
-    """
-
-    BASEDIR = os.path.join(cfg.data_tree_dir, "categories")
-    for category_filename in os.listdir(BASEDIR):
-        c = toml.load(os.path.join(BASEDIR, category_filename))
-        if c["name"] == s:
-            return Category(
-                s,
-                get_color_class_from_name(c["color"])
-            )
-    raise NameError("The category name was not found! perhaps you did not add it yet?")
 
 # Datetime Handling
 def unify_date_formats(string: str) -> str:
@@ -547,7 +540,7 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
     return f"Registered New To-Do: \n{t}"
 
 # Categories
-def check_category_existence(name: str, cfg: Config) -> bool:
+def check_category_existence(name: str, cfg: Config = Config()) -> bool:
     """
     Check for the existence of a given category by searching through the category directory.
     """
@@ -556,9 +549,9 @@ def check_category_existence(name: str, cfg: Config) -> bool:
             return True
     return False
 
-def match_name_with_category(name: str, cfg: Config) -> Category:
+def match_name_with_category(name: str, cfg: Config = Config()) -> Category:
     """
-    Get a category class, givven the name of an
+    Get a category class, given the name of an
     existing category.
     """
     
@@ -570,7 +563,7 @@ def match_name_with_category(name: str, cfg: Config) -> Category:
                 break
     raise NameError("The category name was not found! Perhaps you did not add it yet?")
 
-def match_category_name_with_filename(name: str, cfg: Config) -> str:
+def match_category_name_with_filename(name: str, cfg: Config = Config()) -> str:
     """
     Find a filename based on the category name.
     """
@@ -742,26 +735,23 @@ def del_event(index: int, cfg: Config) -> str:
     return "" 
 
 # Schedule
-def get_schedule_entry_dict(schedule_entry: ScheduleEntry) -> dict[str, typing.Union[datetime.time, str, list[str]]]:
-    return {
-        "begin": schedule_entry.begin,
-        "end": schedule_entry.end if schedule_entry.end is not None else "",
-        "label": schedule_entry.label,
-        "categories": [c.name for c in schedule_entry.categories],
-    }
+def new_schedule_day(day_of_week: str, repeat: bool, *schedule_entries: ScheduleEntry) -> ScheduleDay:
+    return ScheduleDay(day_of_week, [entry for entry in schedule_entries], repeat) # type: ignore
 
-def new_schedule_day(day_of_week: str = "mon", *schedule_entries: list[ScheduleEntry]) -> tuple[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]]:
-    VALID_DAYS_OF_WEEK = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-    if day_of_week not in VALID_DAYS_OF_WEEK:
-        raise FatalError(f"the day of the week \"{day_of_week}\" is not a valid day of the week!")
-    return (day_of_week, [get_schedule_entry_dict(entry) for entry in schedule_entries]) # type: ignore
-
-def build_schedule_tree(anchor_date: datetime.date, repeats: list[str] = [], **schedule_days: dict[str, dict[str, typing.Union[datetime.date, str, list[str]]]]) -> dict[str, typing.Union[datetime.date, dict[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]]]]:
-    VALID_DAYS_OF_WEEK = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+def build_schedule_tree(anchor_date: datetime.date, **schedule_days: ScheduleDay) -> dict[str, dict[str, typing.Union[datetime.date, list[str], dict[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]], None]]]:
+    print(schedule_days)
     return {
         "schedule": {
             "anchor_date": anchor_date,
-            "repeats": [r for r in repeats if r in VALID_DAYS_OF_WEEK],
-            
+            "repeats": [k for k, v in schedule_days.items() if (k in ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]) and v.repeat],
+            "days": {d: [entry.to_dict() for entry in schedule_days[d].entries] if d in schedule_days.keys() else None for d in schedule_days.keys()} # type: ignore
         }
     }
+
+def parse_schedule_entry_from_dict(schedule_entry: dict[str, typing.Union[datetime.time, str, list[str]]]) -> ScheduleEntry:
+    return ScheduleEntry(
+        schedule_entry["begin"], # type: ignore
+        schedule_entry["end"] if schedule_entry["end"] != "" else None, # type: ignore
+        schedule_entry["label"], # type: ignore
+        [match_name_with_category(c) for c in schedule_entry["categories"]] # type: ignore
+    )

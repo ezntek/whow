@@ -7,30 +7,31 @@
         "sun"
     ]
     
-    # The schedule for monday
-    [[schedule.mon]]
-        begin = 09:00:00
-        end = 10:00:00 # can be an empty string
-        label = "my dumb label"
-        categories = ["school"]
-    [[schedule.mon]]
-        begin = 09:30:00
-        end = ""
-        label = "foo bar"
-        categories = ["random"]
-    
-    # The schedule for thursday
-    [[schedule.thu]]
-        begin = 13:25:00
-        end = 14:30:30
-        label = "baz"
-        categories = ["random", "programming"]
+    [schedule.days]
+        # The schedule for monday
+        [[schedule.days.mon]]
+            begin = 09:00:00
+            end = 10:00:00 # can be an empty string
+            label = "my dumb label"
+            categories = ["school"]
+        [[schedule.days.mon]]
+            begin = 09:30:00
+            end = ""
+            label = "foo bar"
+            categories = ["random"]
+        
+        # The schedule for thursday
+        [[schedule.days.thu]]
+            begin = 13:25:00
+            end = 14:30:30
+            label = "baz"
+            categories = ["random", "programming"]
 
-    # The schedule for sunday
-    [[schedule.sun]]
-        begin = 08:50:00
-        end = 09:20:00
-        label = "spam"
-        categories = ["cooking"]
+        # The schedule for sunday
+        [[schedule.days.sun]]
+            begin = 08:50:00
+            end = 09:20:00
+            label = "spam"
+            categories = ["cooking"]
     
 
