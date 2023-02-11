@@ -489,8 +489,12 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
     by the `todo_entry.index` value, for use with
     certain functions only.
     """
+
+    if todo_entry.name == "index":
+        raise FatalError(f"invalid todo entry name: {todo_entry.name}")
+
     # replace all whitespaces with underscores
-    #todo_entry.name.replace(" ", "_")
+    todo_entry.name.replace(" ", "_")
 
     # guard clause
     if os.path.exists(os.path.join(cfg.data_tree_dir, f"todos/{todo_entry.name}.toml")):
@@ -647,7 +651,7 @@ def register_event(event_entry: EventEntry, cfg: Config, force: bool = False, qu
     """
 
     if event_entry.name == "index":
-        warn(f"Illegal name: {event_entry.name}")
+        raise FatalError(f"Illegal name: {event_entry.name}")
 
     event_entry.name.replace(" ", "_")
 
