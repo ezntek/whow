@@ -20,15 +20,16 @@ and more to come.
 Figure it out yourself. We are exhausted, proper docs will come in a later version, just you wait.
 
 ## Currently Working on:
- * Python 3.9 support (for PyPy's sake)
  * Code refactoring
- * Use TOML dates instead of string dates
+ * Schedule Feature
+ * Calendar date highlighting based on events
 
 ## Planned Features (high priority):
  * [x] Use TOML dates instead of string dates
  * [x] add support for PyPy3.9 (maybe)
  * [x] Refactor code for the whow API
  * [ ] Schedule Feature
+ * [ ] Calendar date highlighting
  * [ ] get this on the PyPI
  * [ ] OTA Updates
  * [ ] Sorting To-Dos and events by time

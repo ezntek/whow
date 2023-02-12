@@ -17,10 +17,14 @@
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
 
 # Imports
-import toml
 import os
 import colors
 import typing
+
+try:
+    import tomllib as toml_reader
+except ImportError:
+    import tomli as toml_reader
 
 # Class Definitions
 
@@ -51,7 +55,8 @@ class Config():
         """
         Load configuration file. Shouldn't be called on its own.
         """
-        data = toml.load(self.CONFPATH)
+        with open(self.CONFPATH, "rb") as f:
+            data = toml_reader.load(f)
 
         self.default_separator:str = data['config']['default_separator'] if "default_separator" in data['config'].keys() else self.default_separator
         self.separator_length: int = data['config']['separator_length'] if "separator_length" in data['config'].keys() else self.separator_length

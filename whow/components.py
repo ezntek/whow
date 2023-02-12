@@ -16,16 +16,20 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
 
-# core imports
-from colors import Colors, Styles
+
 import datetime
 import calendar
-import toml
+
 import os
 import typing
-
-# other imports
 import util
+
+try:
+    import tomllib as toml_reader
+except ImportError:
+    import tomli as toml_reader
+
+from colors import Colors, Styles
 from config import Config
 from dataclasses import dataclass
 
@@ -43,8 +47,8 @@ class EventsComponent():
     def load_events(self) -> None:
         for filename in os.listdir(os.path.join(Config().data_tree_dir, "events")):
             if filename != "index.toml":
-                with open(os.path.join(Config().data_tree_dir, "events", filename), "r") as t:
-                    self.events.append(util.parse_evententry_from_dict(toml.loads(t.read()), os.path.splitext(filename)[0].replace("_", " ")))
+                with open(os.path.join(Config().data_tree_dir, "events", filename), "rb") as f:
+                    self.events.append(util.parse_evententry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " ")))
 
     def DateDisplay(self, event: util.EventEntry) -> str:
         return f"{Colors.white()} {event.event_from.__repr__()} {Styles.end}"
@@ -78,7 +82,8 @@ class ToDoComponent():
 
         for filename in os.listdir(os.path.join(self.cfg.data_tree_dir, "todos")):
             if filename != "index.toml":
-                todo = util.parse_todoentry_from_dict(toml.load(os.path.join(self.cfg.data_tree_dir, "todos", filename)), os.path.splitext(filename)[0].replace("_", " "))
+                with open(os.path.join(self.cfg.data_tree_dir, "todos", filename), "rb") as f:
+                    todo = util.parse_todoentry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " "))
                 self.important_todos.append(todo) if "important" in [c.name for c in todo.categories] else self.todos.append(todo)
 
     def __repr__(self) -> str:
@@ -121,7 +126,7 @@ class DateDisplay():
             self.time = self.date_time_now.strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
-        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.blue.bg}{util.emoji('📅', self.cfg)} {self.date}{Styles.end} {Styles.bold}{Colors.magenta.bg}{util.emoji('🕓')} {self.time}{Styles.end}"
+        return f"{Styles.bold}Today is{Styles.end} {Styles.bold}{Colors.black.fg}{Colors.blue.bg}{util.emoji('📅', self.cfg)} {self.date}{Styles.end} {Styles.bold}{Colors.black.fg}{Colors.magenta.bg}{util.emoji('🕓')} {self.time}{Styles.end}"
 
 @dataclass
 class Separator():
@@ -200,7 +205,7 @@ class Calendar():
                     else:
                         retval += f"  {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg}  {x.__repr__()} {Colors.fg_end}" # 2 then 1 space
                 else:
-                    retval += f" {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg} {x.__repr__()}" # 1 on either side
+                    retval += f" {x.__repr__()} " if datetime.datetime.now().date().day != x.date else f"{Colors.white.bg}{Colors.black.fg} {x.__repr__()} {Colors.bg_end}{Colors.fg_end}" # 1 on either side
             retval += "\n"
         return retval
 
