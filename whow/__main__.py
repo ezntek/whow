@@ -182,7 +182,7 @@ def parse_args(cfg: Config) -> None:
                     return
                 event_to_str: str = sys.argv[5]
 
-                category_classes: list[util.Category] = [util.parse_category_from_name(c[1:], cfg)
+                category_classes: list[util.Category] = [util.match_name_with_category(c[1:])
                                                             for c in sys.argv[6:]
                                                                 if c[0] == "@"]
                 

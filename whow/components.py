@@ -48,7 +48,7 @@ class EventsComponent():
         for filename in os.listdir(os.path.join(Config().data_tree_dir, "events")):
             if filename != "index.toml":
                 with open(os.path.join(Config().data_tree_dir, "events", filename), "rb") as f:
-                    self.events.append(util.parse_evententry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " ")))
+                    self.events.append(util.get_evententry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " ")))
 
     def DateDisplay(self, event: util.EventEntry) -> str:
         return f"{Colors.white()} {event.event_from.__repr__()} {Styles.end}"
@@ -83,7 +83,7 @@ class ToDoComponent():
         for filename in os.listdir(os.path.join(self.cfg.data_tree_dir, "todos")):
             if filename != "index.toml":
                 with open(os.path.join(self.cfg.data_tree_dir, "todos", filename), "rb") as f:
-                    todo = util.parse_todoentry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " "))
+                    todo = util.get_todoentry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " "))
                 self.important_todos.append(todo) if "important" in [c.name for c in todo.categories] else self.todos.append(todo)
 
     def __repr__(self) -> str:

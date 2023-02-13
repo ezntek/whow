@@ -113,16 +113,28 @@ class ScheduleEntry():
             "label": self.label,
             "categories": [c.name for c in self.categories]
         }
+
 @dataclass
 class ScheduleDay():
     day_of_week: str
     entries: list[ScheduleEntry]
     repeat: bool
 
-class Schedule():
-    def __init__(self, anchor_date: datetime.date, **schedule_days: dict[str, ScheduleDay]) -> None:
-        self.anchor_date = anchor_date
-        self.schedule_days = schedule_days
+# Typed Dictionaries
+class ScheduleTypedDict(typing.TypedDict):
+    pass
+
+class ScheduleEntryTypedDict(typing.TypedDict):
+    pass
+
+class ToDoTypedDict(typing.TypedDict):
+    pass
+
+class EventTypedDict(typing.TypedDict):
+    pass
+
+class CategoryTypedDict(typing.TypedDict):
+    pass
 
 # Function Definitions
 # Utility Functions
@@ -379,7 +391,7 @@ def _fill_idx(l: list[int]) -> tuple[list[int], int]:
      
     return (retval, idx)
 
-def parse_todoentry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.date, bool, list[dict[str, str]]]]], file_name: str) -> ToDoEntry:
+def get_todoentry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.date, bool, list[dict[str, str]]]]], file_name: str) -> ToDoEntry:
     """
     Parse a dictionary that was parsed from a `ToDoEntry` into a `ToDoEntry`.
     `file_name` should be the name of the file WITHOUT the extension.
@@ -445,7 +457,7 @@ def del_todo(index: int, cfg: Config) -> str:
     BASEDIR = os.path.join((cfg.data_tree_dir), f"todos")
     todo_name = os.path.splitext(filename.replace("_", " "))[0]
     with open(os.path.join(BASEDIR, filename), "rb") as f:
-        todo = parse_todoentry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " "))
+        todo = get_todoentry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " "))
     
     if index == todo.index:
         os.remove(os.path.join(BASEDIR, filename))
@@ -468,7 +480,7 @@ def mark_todo(index: int, cfg: Config) -> str:
         data = toml_reader.load(f)
 
     todo_name = os.path.splitext(filename.replace("_", " "))[0]
-    todo = parse_todoentry_from_dict(data, todo_name)
+    todo = get_todoentry_from_dict(data, todo_name)
     
     todo.ticked = not todo.ticked
     register_todo(todo, cfg, force=True, quiet=True, use_old_index=True)
@@ -620,7 +632,7 @@ def del_category(name: str, cfg: Config) -> str:
         error("A category with this name does not exist! please re-evaluate your input.")
     return ""
 
-def parse_category_from_dict(d: dict[str, str]) -> Category:
+def get_category_from_dict(d: dict[str, str]) -> Category:
     """
     Parse a category that was parsed from a `Category` into a `Category`.
     """
@@ -637,7 +649,7 @@ def list_categories(cfg: Config) -> None:
     for path in os.listdir(os.path.join(cfg.data_tree_dir, "categories")):
         try:
             with open(os.path.join(cfg.data_tree_dir, "categories", path), "rb") as f:
-                print(parse_category_from_dict(toml_reader.load(f)))
+                print(get_category_from_dict(toml_reader.load(f)))
         except KeyError or TypeError:
             warn(f"The category file {path} in the folder is corrupted!")
 
@@ -697,7 +709,7 @@ def register_event(event_entry: EventEntry, cfg: Config, force: bool = False, qu
     
     return f"Registered New Event: \n{t}"
 
-def parse_evententry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.datetime , bool , list[typing.Union[str, int]]]]], file_name: str) -> EventEntry:
+def get_evententry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.datetime , bool , list[typing.Union[str, int]]]]], file_name: str) -> EventEntry:
     """
     Parse a dictionary that was parsed from an `EventEntry` into an `EventEntry`.
     `file_name` should be the name of the file WITHOUT the extension
@@ -744,7 +756,7 @@ def del_event(index: int, cfg: Config) -> str:
     BASEDIR = os.path.join(cfg.data_tree_dir, f"events")
     event_name = os.path.splitext(filename.replace("_", " "))[0]
     with open(os.path.join(BASEDIR, filename), "rb") as f:
-        event = parse_evententry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " "))
+        event = get_evententry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " "))
 
     if index == event.index:
         os.remove(os.path.join(BASEDIR, filename))
@@ -772,3 +784,21 @@ def parse_schedule_entry_from_dict(schedule_entry: dict[str, typing.Union[dateti
         schedule_entry["label"], # type: ignore
         [match_name_with_category(c) for c in schedule_entry["categories"]] # type: ignore
     )
+
+def get_schedule_entry_from_dict(d: dict[str, typing.Union[datetime.time, str, list[str]]]) -> ScheduleEntry:
+    return ScheduleEntry(
+        d["begin"], # type: ignore
+        d["end"] if d["end"] != "" else None, # type: ignore
+        str(d["label"]),
+        [match_name_with_category(c) for c in d["categories"]] # type: ignore
+    )
+
+def construct_schedule_tree(d: dict[str, dict[str, typing.Union[datetime.date, list[str], dict[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]], None]]]):
+    return {
+        "schedule": {
+            "anchor_date": d["schedule"]["anchor_date"],
+            "days": {
+                k: [get_schedule_entry_from_dict(entry) for entry in v] for k, v in d["schedule"]["days"].items() # type: ignore
+            }
+        }
+    }
