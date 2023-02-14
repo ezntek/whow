@@ -121,11 +121,31 @@ class ScheduleDay():
     repeat: bool
 
 # Typed Dictionaries
-class ScheduleTypedDict(typing.TypedDict):
-    pass
+class ScheduleDaysTypedDict(typing.TypedDict, total=False):
+    mon: ScheduleDay
+    tue: ScheduleDay
+    wed: ScheduleDay
+    thu: ScheduleDay
+    fri: ScheduleDay
+    sat: ScheduleDay
+    sun: ScheduleDay
+
+class ScheduleDaysDictTypedDict(typing.TypedDict, total=False):
+    mon: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    tue: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    wed: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    thu: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    fri: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    sat: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    sun: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
 
 class ScheduleEntryTypedDict(typing.TypedDict):
     pass
+
+class ScheduleTypedDict(typing.TypedDict):
+    anchor_date: datetime.date
+    repeats: list[str]
+    days: ScheduleDaysTypedDict
 
 class ToDoTypedDict(typing.TypedDict):
     pass
@@ -765,14 +785,20 @@ def del_event(index: int, cfg: Config) -> str:
     return "" 
 
 # Schedule
+def get_schedule_days_dict_from_days(d: ScheduleDaysTypedDict) -> ScheduleDaysDictTypedDict:
+    return {
+        k: v.to_dict() for k, v in d.items() # type: ignore
+    }
 def new_schedule_day(day_of_week: str, repeat: bool, *schedule_entries: ScheduleEntry) -> ScheduleDay:
     return ScheduleDay(day_of_week, [entry for entry in schedule_entries], repeat) # type: ignore
 
-def build_schedule_tree(anchor_date: datetime.date, **schedule_days: ScheduleDay) -> dict[str, dict[str, typing.Union[datetime.date, list[str], dict[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]], None]]]:
+def build_schedule_tree(anchor_date: datetime.date, schedule_days: ScheduleDaysTypedDict) -> dict[str, ScheduleTypedDict]:
+    for k, v in schedule_days.items():
+        print(f"{k=} {v=}")
     return {
         "schedule": {
             "anchor_date": anchor_date,
-            "repeats": [k for k, v in schedule_days.items() if (k in ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]) and v.repeat],
+            "repeats": [k for k, v in schedule_days.items() if (k in ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]) and v.repeat], # type: ignore
             "days": {d: [entry.to_dict() for entry in schedule_days[d].entries] if d in schedule_days.keys() else None for d in schedule_days.keys()} # type: ignore
         }
     }
@@ -793,7 +819,7 @@ def get_schedule_entry_from_dict(d: dict[str, typing.Union[datetime.time, str, l
         [match_name_with_category(c) for c in d["categories"]] # type: ignore
     )
 
-def construct_schedule_tree(d: dict[str, dict[str, typing.Union[datetime.date, list[str], dict[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]], None]]]):
+def construct_schedule_tree(d: dict[str, dict[str, typing.Union[datetime.date, list[str], dict[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]], None]]]): # type: ignore
     return {
         "schedule": {
             "anchor_date": d["schedule"]["anchor_date"],
