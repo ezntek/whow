@@ -793,8 +793,6 @@ def new_schedule_day(day_of_week: str, repeat: bool, *schedule_entries: Schedule
     return ScheduleDay(day_of_week, [entry for entry in schedule_entries], repeat) # type: ignore
 
 def build_schedule_tree(anchor_date: datetime.date, schedule_days: ScheduleDaysTypedDict) -> dict[str, ScheduleTypedDict]:
-    for k, v in schedule_days.items():
-        print(f"{k=} {v=}")
     return {
         "schedule": {
             "anchor_date": anchor_date,
