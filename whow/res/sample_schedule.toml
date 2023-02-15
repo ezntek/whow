@@ -1,0 +1,35 @@
+[schedule]
+    anchor_date = 2023-02-06 # anchors which week this is referring to  
+    # which days to repeat
+    repeats = [
+        "mon",
+        "thu",
+        "sun"
+    ]
+    
+    [schedule.days]
+        # The schedule for monday
+        [[schedule.days.mon]]
+            begin = 09:00:00
+            end = 10:00:00 # can be an empty string
+            label = "my dumb label"
+            categories = ["school"]
+        [[schedule.days.mon]]
+            begin = 09:30:00
+            end = ""
+            label = "foo bar"
+            categories = ["random"]
+        
+        # The schedule for thursday
+        [[schedule.days.thu]]
+            begin = 13:25:00
+            end = 14:30:30
+            label = "baz"
+            categories = ["random", "programming"]
+
+        # The schedule for sunday
+        [[schedule.days.sun]]
+            begin = 08:50:00
+            end = 09:20:00
+            label = "spam"
+            categories = ["cooking"]

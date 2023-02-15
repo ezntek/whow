@@ -1,11 +1,11 @@
 [name_of_event]
-index = 69
-name = "name_of_event"
-full_day = false
-event_from = 1999-01-09T01:23:45
-event_to = 2000-01-01T02:34:56
-categories = ["Something", "SomethingElse"]
-description = """
-TheDescription.
-Yadda-Yadda-Ya.
-"""
+    index = 69
+    name = "name_of_event"
+    full_day = false
+    event_from = 1999-01-09T01:23:45
+    event_to = 2000-01-01T02:34:56
+    categories = ["Something", "SomethingElse"]
+    description = """
+    TheDescription.
+    Yadda-Yadda-Ya.
+    """

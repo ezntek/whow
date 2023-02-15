@@ -1,9 +1,9 @@
 [name_of_todo]
-index = 0
-name = "name_of_todo"
-due = 4206-09-01
-categories = [
-    "categoryName1",
-    "categoryName2"
-]
-overdue = false
+    index = 0
+    name = "name_of_todo"
+    due = 4206-09-01
+    categories = [
+        "categoryName1",
+        "categoryName2"
+    ]
+    overdue = false

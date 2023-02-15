@@ -17,12 +17,18 @@
 #    along with this program.  If not, see https://www.gnu.org/licenses/.
 
 import datetime
-import toml
 import os
 import shutil
 import math
-
 import typing
+
+try:
+    import tomllib as toml_reader
+except ImportError:
+    import tomli as toml_reader
+    
+import tomli_w as toml_writer
+
 from dataclasses import dataclass
 from colors import Color, Colors, Styles, get_color_class_from_name
 from config import Config
@@ -36,7 +42,6 @@ class InvalidMonthNameError(Exception):
     
     def __init__(self) -> None:
         "Constructs the invalid month name complaint."
-
         error("Invalid Month Name - It has to be any one of Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, or Dec.")
         exit(1)
 
@@ -94,8 +99,64 @@ class EventEntry():
     full_day: bool = False
     index: int = 0
 
-# Function Definitions
+@dataclass
+class ScheduleEntry():
+    begin: datetime.time
+    end: typing.Union[datetime.time, None]
+    label: str
+    categories: list[Category]
 
+    def to_dict(self) -> dict[str, typing.Union[datetime.time, str, list[str]]]:
+        return {
+            "begin": self.begin,
+            "end": self.end if self.end is not None else "",
+            "label": self.label,
+            "categories": [c.name for c in self.categories]
+        }
+
+@dataclass
+class ScheduleDay():
+    day_of_week: str
+    entries: list[ScheduleEntry]
+    repeat: bool
+
+# Typed Dictionaries
+class ScheduleDaysTypedDict(typing.TypedDict, total=False):
+    mon: ScheduleDay
+    tue: ScheduleDay
+    wed: ScheduleDay
+    thu: ScheduleDay
+    fri: ScheduleDay
+    sat: ScheduleDay
+    sun: ScheduleDay
+
+class ScheduleDaysDictTypedDict(typing.TypedDict, total=False):
+    mon: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    tue: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    wed: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    thu: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    fri: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    sat: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+    sun: list[dict[str, typing.Union[datetime.time, str, list[str]]]]
+
+class ScheduleEntryTypedDict(typing.TypedDict):
+    pass
+
+class ScheduleTypedDict(typing.TypedDict):
+    anchor_date: datetime.date
+    repeats: list[str]
+    days: ScheduleDaysTypedDict
+
+class ToDoTypedDict(typing.TypedDict):
+    pass
+
+class EventTypedDict(typing.TypedDict):
+    pass
+
+class CategoryTypedDict(typing.TypedDict):
+    pass
+
+# Function Definitions
 # Utility Functions
 
 def log(text: str, return_string: bool = False) -> typing.Union[str, None]:
@@ -163,21 +224,6 @@ def print_center(string: str, width: int, bias_left: bool = True, return_string:
         if return_string:
             return f"{' '*int(padding_width/2)}{string}{' '*int(padding_width/2)}"
         print(f"{' '*int(padding_width/2)}{string}{''*int(padding_width/2)}")
-
-def parse_category_from_name(s: str, cfg: Config = Config()) -> Category:
-    """
-    Parse a dictionary that was parsed from a `Category` back into a `Category`.
-    """
-
-    BASEDIR = os.path.join(cfg.data_tree_dir, "categories")
-    for category_filename in os.listdir(BASEDIR):
-        c = toml.load(os.path.join(BASEDIR, category_filename))
-        if c["name"] == s:
-            return Category(
-                s,
-                get_color_class_from_name(c["color"])
-            )
-    raise NameError("The category name was not found! perhaps you did not add it yet?")
 
 # Datetime Handling
 def unify_date_formats(string: str) -> str:
@@ -289,6 +335,7 @@ def init(destroy: bool = False, verbose: bool = True) -> None:
     if destroy:
         warn(f"Overwriting {cfg.config_tree_dir} and {cfg.data_tree_dir}...")
         try:
+            cfg.nuke_cfg()
             shutil.rmtree(cfg.config_tree_dir)
             shutil.rmtree(cfg.data_tree_dir)
         except FileNotFoundError:
@@ -316,7 +363,7 @@ def init(destroy: bool = False, verbose: bool = True) -> None:
             log(f"Created directory {dir}.") if verbose else None
             os.mkdir(os.path.join(cfg.data_tree_dir, dir))
     
-    indextoml_tmp = toml.dumps(
+    indextoml_tmp = toml_writer.dumps(
         {
             "indexes": [] # type: ignore
         }
@@ -364,12 +411,11 @@ def _fill_idx(l: list[int]) -> tuple[list[int], int]:
      
     return (retval, idx)
 
-def parse_todoentry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.date, bool, list[dict[str, str]]]]], file_name: str) -> ToDoEntry:
+def get_todoentry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.date, bool, list[dict[str, str]]]]], file_name: str) -> ToDoEntry:
     """
     Parse a dictionary that was parsed from a `ToDoEntry` into a `ToDoEntry`.
     `file_name` should be the name of the file WITHOUT the extension.
     """
-
     return ToDoEntry(
         str(d[file_name]["name"]).replace("_", " "),
         d[file_name]["due"], #type: ignore
@@ -390,13 +436,13 @@ def pop_indextoml_element(element: int, cfg: Config, type: str = "todos",) -> No
         type = "todos"
     
     with open(os.path.join(cfg.data_tree_dir, f"todos/index.toml"), "r") as index_toml:
-        indexes: list[int] = toml.loads(index_toml.read())['indexes']
+        indexes: list[int] = toml_reader.loads(index_toml.read())['indexes']
         for count, idx in enumerate(indexes):
             if idx == element:
                 indexes[count] = -1
     
     with open(os.path.join(cfg.data_tree_dir, f"todos/index.toml"), "w") as index_toml:
-        index_toml.write(toml.dumps({
+        index_toml.write(toml_writer.dumps({
             "indexes": indexes
         }))
 
@@ -409,7 +455,8 @@ def match_todo_index(index: int, cfg: Config) -> str:
     for filename in os.listdir(BASEDIR):
         if filename == "index.toml":
             continue
-        data = toml.load(os.path.join(BASEDIR, filename))
+        with open(os.path.join(BASEDIR, filename), "rb") as f:
+            data = toml_reader.load(f)
         todo_name = os.path.splitext(filename.replace("_", " "))[0]
 
         if index == data[todo_name]["index"]:
@@ -429,7 +476,8 @@ def del_todo(index: int, cfg: Config) -> str:
         
     BASEDIR = os.path.join((cfg.data_tree_dir), f"todos")
     todo_name = os.path.splitext(filename.replace("_", " "))[0]
-    todo = parse_todoentry_from_dict(toml.load(os.path.join(BASEDIR, filename)), os.path.splitext(filename)[0].replace("_", " "))
+    with open(os.path.join(BASEDIR, filename), "rb") as f:
+        todo = get_todoentry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " "))
     
     if index == todo.index:
         os.remove(os.path.join(BASEDIR, filename))
@@ -448,9 +496,11 @@ def mark_todo(index: int, cfg: Config) -> str:
         error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
         return ""
 
-    data = toml.load(os.path.join((cfg.data_tree_dir), f'todos', filename))
+    with open(os.path.join((cfg.data_tree_dir), 'todos', filename), "rb") as f:
+        data = toml_reader.load(f)
+
     todo_name = os.path.splitext(filename.replace("_", " "))[0]
-    todo = parse_todoentry_from_dict(data, todo_name)
+    todo = get_todoentry_from_dict(data, todo_name)
     
     todo.ticked = not todo.ticked
     register_todo(todo, cfg, force=True, quiet=True, use_old_index=True)
@@ -480,8 +530,12 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
     by the `todo_entry.index` value, for use with
     certain functions only.
     """
+
+    if todo_entry.name == "index":
+        raise FatalError(f"invalid todo entry name: {todo_entry.name}")
+
     # replace all whitespaces with underscores
-    #todo_entry.name.replace(" ", "_")
+    todo_entry.name.replace(" ", "_")
 
     # guard clause
     if os.path.exists(os.path.join(cfg.data_tree_dir, f"todos/{todo_entry.name}.toml")):
@@ -496,23 +550,23 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
     todo_idx = (0, 0)
     if not use_old_index:
         # load the used indexes
-        with open(os.path.join(cfg.data_tree_dir, "todos/index.toml")) as indexes:
-            idx: list[int] = toml.loads(indexes.read())['indexes']
+        with open(os.path.join(cfg.data_tree_dir, "todos/index.toml"), "rb") as f:
+            idx: list[int] = toml_reader.load(f)['indexes']
         
         todo_idx = _fill_idx(idx)
 
         # write new index.toml
         with open(os.path.join(cfg.data_tree_dir, "todos/index.toml"), "w") as indextoml:
-            indextoml.write(toml.dumps({
+            indextoml.write(toml_writer.dumps({
                 "indexes": todo_idx[0]
             }))
 
     # write the todo toml file
-    with open(os.path.join(cfg.data_tree_dir, f'todos/{todo_entry.name.replace(" ", "_")}.toml'), "w+") as tml:
+    with open(os.path.join(cfg.data_tree_dir, f'todos/{todo_entry.name.replace(" ", "_")}.toml'), "w+") as f:
         # unwrap the optional
         todo_entry_due = todo_entry.due if todo_entry.due is not None else datetime.datetime.now().date()
         
-        t = toml.dumps(
+        t = toml_writer.dumps(
             {
                 todo_entry.name: {
                     "index": todo_idx[1] if not use_old_index else todo_entry.index,
@@ -526,12 +580,12 @@ def register_todo(todo_entry: ToDoEntry, cfg: Config, force: bool = False, quiet
                 }
             }
         )
-        tml.write(t)
+        f.write(t)
 
     return f"Registered New To-Do: \n{t}"
 
 # Categories
-def check_category_existence(name: str, cfg: Config) -> bool:
+def check_category_existence(name: str, cfg: Config = Config()) -> bool:
     """
     Check for the existence of a given category by searching through the category directory.
     """
@@ -540,21 +594,21 @@ def check_category_existence(name: str, cfg: Config) -> bool:
             return True
     return False
 
-def match_name_with_category(name: str, cfg: Config) -> Category:
+def match_name_with_category(name: str, cfg: Config = Config()) -> Category:
     """
-    Get a category class, givven the name of an
+    Get a category class, given the name of an
     existing category.
     """
     
     for path in os.listdir(os.path.join(cfg.data_tree_dir, f"categories")):
         if os.path.splitext(path)[0] == name:
             try:
-                return parse_category_from_name(toml.load(os.path.join(cfg.data_tree_dir, "categories", path))['name'], cfg)# type: ignore
+                return parse_category_from_name(toml.load(os.path.join(cfg.data_tree_dir, "categories", path))['name'], cfg) # type: ignore
             except NameError:
                 break
     raise NameError("The category name was not found! Perhaps you did not add it yet?")
 
-def match_category_name_with_filename(name: str, cfg: Config) -> str:
+def match_category_name_with_filename(name: str, cfg: Config = Config()) -> str:
     """
     Find a filename based on the category name.
     """
@@ -580,7 +634,7 @@ def register_category(category: Category, cfg: Config, force: bool = False, quie
         warn("A category entry with the same name already exists. Overwriting...") if not quiet else None
 
     with open(os.path.join(cfg.data_tree_dir, f'categories/{n}.toml'), "w+") as categorytoml:
-        t = toml.dumps(category.get_dictionary())
+        t = toml_writer.dumps(category.get_dictionary())
         categorytoml.write(t)
 
     return f"Wrote a new category toml. \n{t}" if not quiet else None
@@ -598,7 +652,7 @@ def del_category(name: str, cfg: Config) -> str:
         error("A category with this name does not exist! please re-evaluate your input.")
     return ""
 
-def parse_category_from_dict(d: dict[str, str]) -> Category:
+def get_category_from_dict(d: dict[str, str]) -> Category:
     """
     Parse a category that was parsed from a `Category` into a `Category`.
     """
@@ -614,7 +668,8 @@ def list_categories(cfg: Config) -> None:
     
     for path in os.listdir(os.path.join(cfg.data_tree_dir, "categories")):
         try:
-            print(parse_category_from_dict(toml.load(os.path.join(cfg.data_tree_dir, "categories", path))))
+            with open(os.path.join(cfg.data_tree_dir, "categories", path), "rb") as f:
+                print(get_category_from_dict(toml_reader.load(f)))
         except KeyError or TypeError:
             warn(f"The category file {path} in the folder is corrupted!")
 
@@ -638,7 +693,7 @@ def register_event(event_entry: EventEntry, cfg: Config, force: bool = False, qu
     """
 
     if event_entry.name == "index":
-        warn(f"Illegal name: {event_entry.name}")
+        raise FatalError(f"Illegal name: {event_entry.name}")
 
     event_entry.name.replace(" ", "_")
 
@@ -648,14 +703,16 @@ def register_event(event_entry: EventEntry, cfg: Config, force: bool = False, qu
             return ""
         warn("An event entry with the same name already exists. Overwriting.") if not quiet else None
         
-    event_idx = _fill_idx(toml.load(os.path.join(cfg.data_tree_dir, "index.toml"))['indexes'])
+    with open(os.path.join(cfg.data_tree_dir, "index.toml"), "rb") as f:
+        event_idx = _fill_idx(toml_reader.load(f)["indexes"])
+
     with open(os.path.join(cfg.data_tree_dir, "events/index.toml"), "w") as indextoml:
-        indextoml.write(toml.dumps({"indexes": event_idx[0]}))
+        indextoml.write(toml_writer.dumps({"indexes": event_idx[0]}))
     
     with open(os.path.join(cfg.data_tree_dir, f"events/{event_entry.name.replace(' ', '_')}.toml"), "w") as tml:
         event_entry_to = event_entry.event_to if event_entry.event_to is not None else "fullday"
 
-        t = toml.dumps(
+        t = toml_writer.dumps(
             {
                 event_entry.name: {
                     "index": event_idx[1],
@@ -672,7 +729,7 @@ def register_event(event_entry: EventEntry, cfg: Config, force: bool = False, qu
     
     return f"Registered New Event: \n{t}"
 
-def parse_evententry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.datetime , bool , list[typing.Union[str, int]]]]], file_name: str) -> EventEntry:
+def get_evententry_from_dict(d: dict[str, dict[str, typing.Union[str, datetime.datetime , bool , list[typing.Union[str, int]]]]], file_name: str) -> EventEntry:
     """
     Parse a dictionary that was parsed from an `EventEntry` into an `EventEntry`.
     `file_name` should be the name of the file WITHOUT the extension
@@ -697,8 +754,9 @@ def match_event_index(index: int, cfg: Config) -> str:
     for filename in os.listdir(BASEDIR):
         if filename == "index.toml":
             continue
-
-        d = toml.load(os.path.join(BASEDIR, filename))
+        
+        with open(os.path.join(BASEDIR, filename), "rb") as f:
+            d = toml_reader.load(f)
         if index == d[os.path.splitext(filename.replace("_", " "))[0]]["index"]:
             return filename
     
@@ -717,10 +775,54 @@ def del_event(index: int, cfg: Config) -> str:
     
     BASEDIR = os.path.join(cfg.data_tree_dir, f"events")
     event_name = os.path.splitext(filename.replace("_", " "))[0]
-    event = parse_evententry_from_dict(toml.load(os.path.join(BASEDIR, filename)), os.path.splitext(filename)[0].replace("_", " "))
+    with open(os.path.join(BASEDIR, filename), "rb") as f:
+        event = get_evententry_from_dict(toml_reader.load(f), os.path.splitext(filename)[0].replace("_", " "))
 
     if index == event.index:
         os.remove(os.path.join(BASEDIR, filename))
         pop_indextoml_element(index, cfg, type = "events")
         return f"deleted event: {event_name}"
     return "" 
+
+# Schedule
+def get_schedule_days_dict_from_days(d: ScheduleDaysTypedDict) -> ScheduleDaysDictTypedDict:
+    return {
+        k: v.to_dict() for k, v in d.items() # type: ignore
+    }
+def new_schedule_day(day_of_week: str, repeat: bool, *schedule_entries: ScheduleEntry) -> ScheduleDay:
+    return ScheduleDay(day_of_week, [entry for entry in schedule_entries], repeat) # type: ignore
+
+def build_schedule_tree(anchor_date: datetime.date, schedule_days: ScheduleDaysTypedDict) -> dict[str, ScheduleTypedDict]:
+    return {
+        "schedule": {
+            "anchor_date": anchor_date,
+            "repeats": [k for k, v in schedule_days.items() if (k in ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]) and v.repeat], # type: ignore
+            "days": {d: [entry.to_dict() for entry in schedule_days[d].entries] if d in schedule_days.keys() else None for d in schedule_days.keys()} # type: ignore
+        }
+    }
+
+def parse_schedule_entry_from_dict(schedule_entry: dict[str, typing.Union[datetime.time, str, list[str]]]) -> ScheduleEntry:
+    return ScheduleEntry(
+        schedule_entry["begin"], # type: ignore
+        schedule_entry["end"] if schedule_entry["end"] != "" else None, # type: ignore
+        schedule_entry["label"], # type: ignore
+        [match_name_with_category(c) for c in schedule_entry["categories"]] # type: ignore
+    )
+
+def get_schedule_entry_from_dict(d: dict[str, typing.Union[datetime.time, str, list[str]]]) -> ScheduleEntry:
+    return ScheduleEntry(
+        d["begin"], # type: ignore
+        d["end"] if d["end"] != "" else None, # type: ignore
+        str(d["label"]),
+        [match_name_with_category(c) for c in d["categories"]] # type: ignore
+    )
+
+def construct_schedule_tree(d: dict[str, dict[str, typing.Union[datetime.date, list[str], dict[str, list[dict[str, typing.Union[datetime.time, str, list[str]]]]], None]]]): # type: ignore
+    return {
+        "schedule": {
+            "anchor_date": d["schedule"]["anchor_date"],
+            "days": {
+                k: [get_schedule_entry_from_dict(entry) for entry in v] for k, v in d["schedule"]["days"].items() # type: ignore
+            }
+        }
+    }

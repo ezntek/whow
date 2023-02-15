@@ -1,16 +1,23 @@
 [tool.poetry]
-name = "whow"
-version = "0.1.0"
-description = "A simple CLI To-do program."
-authors = [ "ezntek <ezntek@xflymusic.com>", "DaringCuteSeal <daringcuteseal@gmail.com>" ]
-license = "GPLv3"
-readme = "README.md"
+    name = "whow"
+    version = "0.1.0"
+    description = "A simple CLI To-do program."
+    authors = [ "ezntek <ezntek@xflymusic.com>", "DaringCuteSeal <daringcuteseal@gmail.com>" ]
+    license = "GPLv3"
+    readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
-colorama = "^0.4.6"
-toml = "^0.10.2"
+    python = "^3.9"
+    colorama = "^0.4.6"
+    tomli = "^2.0.1"
+    tomli-w = "^1.0.0"
+
+[tool.pyright]
+    extraPaths = "whow"
+    [[tool.pyright.executionEnvironments]]
+        root = "./"
+        extraPaths = "whow/"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+    requires = ["poetry-core"]
+    build-backend = "poetry.core.masonry.api"
