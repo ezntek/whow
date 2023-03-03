@@ -1,25 +1,22 @@
-#    Whow 
-#    A rewrite of DaringCuteSeal/whow in Python that aims to polish the overall UX.
-
-#    Copyright (C) 2023 ezntek (ezntek@xflymusic.com) and DaringCuteSeal (daringcuteseal@gmail.com)
-
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see https://www.gnu.org/licenses/.
+#    Copyright 2023 ezntek (ezntek@xflymusic.com) and DaringCuteSeal (daringcuteseal@gmail.com)
+#    
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+    
+#      http://www.apache.org/licenses/LICENSE-2.0
+    
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
 
 # Imports
 import os
-import colors
 import typing
+
+from ..colors import colors, styles
 
 try:
     import tomllib as toml_reader
@@ -27,8 +24,14 @@ except ImportError:
     import tomli as toml_reader
 
 # Class Definitions
+class _Singleton():
+    _instance = None
+    def __new__(cls, *args: typing.Any, **kwargs: typing.Any):
+        if not isinstance(cls._instance, cls):
+            cls._instance = object.__new__(cls, *args, **kwargs)
+        return cls._instance
 
-class Config():
+class Config(_Singleton):
     def __init__(self, 
                 default_separator:  str       = "line",
                 separator_length:   int       = 27,
@@ -89,9 +92,9 @@ class Config():
 
         if os.path.exists(CONFPATH):
             if not force:
-                print(f"{colors.Styles.bold}{colors.Colors.magenta().colorprint('[!!]')}{colors.Styles.end}Configuration already exists. Aborting.") if not quiet else None
+                print(f"{styles.BOLD}{colors.MAGENTA.sprint('[!!]')}{styles.END}Configuration already exists. Aborting.") if not quiet else None
                 return
-            print(f"{colors.Styles.bold}{colors.Colors.magenta().colorprint('[!!]')}{colors.Styles.end}Configuration already exists. Overwriting.") if not quiet else None
+            print(f"{styles.BOLD}{colors.MAGENTA.sprint('[!!]')}{styles.END}Configuration already exists. Overwriting.") if not quiet else None
         with open(CONFPATH, "w") as conffile:
             toml.dump(self.get_dict(), conffile) # type: ignore
 
