@@ -3,11 +3,11 @@
     version = "0.1.0"
     description = "A simple CLI To-do program."
     authors = [ "ezntek <ezntek@xflymusic.com>", "DaringCuteSeal <daringcuteseal@gmail.com>" ]
-    license = "GPLv3"
+    license = "Apache-2.0"
     readme = "README.md"
 
 [tool.poetry.dependencies]
-    python = "^3.9"
+    python = "^3.10"
     colorama = "^0.4.6"
     tomli = "^2.0.1"
     tomli-w = "^1.0.0"
