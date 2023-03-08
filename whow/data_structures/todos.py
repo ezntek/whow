@@ -30,7 +30,7 @@ from .. import (
     util
 )
 
-class ToDoTypedDict(typing.TypedDict):
+class ToDoEntryTypedDict(typing.TypedDict):
     name: str
     due: datetime.date
     categories: list[str]
@@ -46,7 +46,7 @@ class ToDoEntry():
     ticked: bool = False
     index: int = 0
 
-    def to_dict(self) -> ToDoTypedDict:
+    def to_dict(self) -> ToDoEntryTypedDict:
         todo_entry_due = self.due if self.due is not None else datetime.datetime.now().date()
 
         return {
@@ -61,7 +61,7 @@ class ToDoEntry():
         
 
     @staticmethod
-    def from_dict(d: ToDoTypedDict):
+    def from_dict(d: ToDoEntryTypedDict):
         """
         Parse a dictionary that was parsed from a `ToDoEntry` into a `ToDoEntry`.
         `file_name` should be the name of the file WITHOUT the extension.
@@ -145,7 +145,7 @@ def mark_todo(index: int) -> str:
         return ""
 
     with open(os.path.join(os.environ["HOME"], f'./.local/todos/{filename}'), "rb") as f:
-        data = toml_reader.load(f)
+        data: ToDoEntryTypedDict = toml_reader.load(f) # type: ignore
 
     todo = ToDoEntry.from_dict(data)
     
@@ -176,7 +176,7 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False, quiet: bool = Fals
 
     # load todos
     with open(os.path.join(os.environ["HOME"], "./.local/todos.toml"), "rb") as f:
-        todos_tree: dict[str, dict[str, ToDoTypedDict]] = toml_reader.load(f) # type: ignore
+        todos_tree: dict[str, dict[str, ToDoEntryTypedDict]] = toml_reader.load(f) # type: ignore
 
     # guard clause
     if todo_entry.name in todos_tree.keys():
@@ -186,9 +186,12 @@ def register_todo(todo_entry: ToDoEntry, force: bool = False, quiet: bool = Fals
         elif force:
             util.warn("A to-do entry with the same name already exists. Overwriting.") if not quiet else None
 
-    todo_entry_dict = todo_entry.to_dict()
-    t: str = toml_writer.dumps(todo_entry_dict)
+    todo_entry_dict: ToDoEntryTypedDict = todo_entry.to_dict()
+    t: str = toml_writer.dumps(dict(todo_entry_dict))
     
     todos_tree["todos"][todo_entry.name] = todo_entry_dict
+
+    with open(os.path.join(os.environ["HOME"], "./.local/todos.toml"), "wb") as f:
+        toml_writer.dump(todos_tree, f)
 
     return f"Registered New To-Do: \n{t}"
