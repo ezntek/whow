@@ -74,87 +74,68 @@ class ToDoEntry():
             ticked=d["ticked"],
         )
 
-def pop_indextoml_element(element: int, type: str = "todos",) -> None:
-    """
-    Remove an entry from an index.toml.
-    Valid values for `type: str` include `"todos"` and `"events"`.
-    """
-
-    if type != "todos" and type != "events":
-        type = "todos"
-    
-    with open(os.path.join(os.environ["HOME"], "./.local/todos/index.toml"), "r") as index_toml:
-        indexes: list[int] = toml_reader.loads(index_toml.read())['indexes']
-        for count, idx in enumerate(indexes):
-            if idx == element:
-                indexes[count] = -1
-    
-    with open(os.path.join(os.environ["HOME"], "./.local/todos/index.toml"), "w") as index_toml:
-        index_toml.write(toml_writer.dumps({
-            "indexes": indexes
-        }))
-
 def match_todo_index(index: int) -> str:
     """
-    Find a to-do filename based on its index.
+    Find a to-do name based on its index.
     """
 
-    BASEDIR = os.path.join(os.environ["HOME"], "./.local/todos")
-    for filename in os.listdir(BASEDIR):
-        if filename == "index.toml":
-            continue
-        with open(os.path.join(BASEDIR, filename), "rb") as f:
-            data = toml_reader.load(f)
-        todo_name = os.path.splitext(filename.replace("_", " "))[0]
+    with open(os.path.join(os.environ["HOME"], "./.local/todos.toml"), "rb") as f:
+        todos_tree: dict[str, ToDoEntryTypedDict] = toml_reader.load(f)
 
-        if index == data[todo_name]["index"]:
-            return filename
-    raise IndexError('No file with this to-do index exists! Perhaps the index.toml is corrupted?')
+    for i, (_, v) in enumerate(todos_tree.items()):
+        if i == index:
+            return v["name"]
+    
+    raise exceptions.ToDoIndexError 
 
-def del_todo(index: int) -> str:
+def unwrap_name_or_index(name_or_index: int | str) -> str:
     """
-    Delete a to-do by its index.
+    Unrwap an index of a todo or the name of a todo into the todo, raising an exception if an error occurs.
+    """    
+
+    if isinstance(name_or_index, int):
+        return match_todo_index(name_or_index)            
+    elif type(name_or_index) is str:
+        return name_or_index
+    
+    raise exceptions.NameOrIndexUnwrappingError
+
+def del_todo(name_or_index: int | str) -> str:
     """
+    Delete a to-do.
+    """
+    name = unwrap_name_or_index(name_or_index)
+
+    with open(os.path.join(os.environ["HOME"], "./.local/todos.toml"), "rb") as f:
+        todos_tree: dict[str, dict[str, ToDoEntryTypedDict]] = toml_reader.load(f)
     
     try:
-        filename = match_todo_index(index)
-    except IndexError:
-        util.error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
-        return ""
-        
-    BASEDIR = os.path.join(os.environ["HOME"], "./.local/todos")
-    todo_name = os.path.splitext(filename.replace("_", " "))[0]
-    with open(os.path.join(BASEDIR, filename), "rb") as f:
-        todo: ToDoEntry = ToDoEntry.from_dict(toml_reader.load(f)) # type: ignore
-    
-    if index == todo.index:
-        os.remove(os.path.join(BASEDIR, filename))
-        pop_indextoml_element(index)
-        return f"Deleted to-do: {todo_name}\n"
-    return ""
+        todos_tree["todos"].pop(name)
+    except KeyError:
+        raise exceptions.FatalError(f"The name {name} does not exist! Please re-evaluate your input.")
 
-def mark_todo(index: int) -> str:
+    with open(os.path.join(os.environ["HOME"], "./.local/todos.toml"), "rb") as f:
+        toml_writer.dump(todos_tree, f)
+    
+    return f"Deleted To-Do {name}."
+    
+def mark_todo(name_or_index: int | str) -> str:
     """
     Tick a to-do as done/undone.
     """
-
-    try:
-        filename = match_todo_index(index)
-    except IndexError:
-        util.error("A to-do with this index does not exist! please re-evaluate your input, or perhaps the index.toml is corrupted?")
-        return ""
-
-    with open(os.path.join(os.environ["HOME"], f'./.local/todos/{filename}'), "rb") as f:
-        data: ToDoEntryTypedDict = toml_reader.load(f) # type: ignore
-
-    todo = ToDoEntry.from_dict(data)
     
+    name = unwrap_name_or_index(name_or_index)
+    with open(os.path.join(os.environ["HOME"], "./.local/todos.toml"), "rb") as f:
+        todos_tree: dict[str, dict[str, ToDoEntryTypedDict]] = toml_reader.load(f)
+    
+    todo = ToDoEntry.from_dict(todos_tree["todos"][name])
     todo.ticked = not todo.ticked
-    register_todo(todo, force=True, quiet=True)
-    
-    return f"Marked to-do: {filename} as {not todo.ticked}\n" 
 
-def register_todo(todo_entry: ToDoEntry, force: bool = False, quiet: bool = False) -> typing.Union[str, None]:
+    register_todo(todo, quiet=True, force=True)
+
+    return f"Marked todo {name} as {todo.ticked}"
+
+def register_todo(todo_entry: ToDoEntry, force: bool = False, quiet: bool = False) -> str | None:
     """
     Register a new To-Do.
     

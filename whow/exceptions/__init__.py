@@ -44,6 +44,19 @@ class FatalError(Exception):
         error(text)
         exit(1)
 
+class ToDoIndexError(Exception):
+    """
+    Creates a to-do index error.
+    """
+
+    def __init__(self) -> None:
+        error("To-Do index error - No To-Do with the index was found.")
+    
+class NameOrIndexUnwrappingError(Exception):
+    """
+    Creates a name or index unwrapping error.
+    """
+
 def logs(text: str) -> str:
     return f"{styles.BOLD}{colors.YELLOW.sprint('[>>]')}{styles.END} {text}"
 
